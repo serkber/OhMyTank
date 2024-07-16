@@ -109,7 +109,7 @@ bool AssetsHelper::CreateInputLayout(D3D11_INPUT_ELEMENT_DESC* descriptor, UINT 
     return true;
 }
 
-void AssetsHelper::FullfillBasicVertexArray(RenderingData::BasicVertex* array, UINT elementsCount, FBXImporter::FBXModel *model)
+void AssetsHelper::FullfillBasicVertexArray(BasicVertex* array, UINT elementsCount, FBXImporter::FBXModel *model)
 {  
     for (int i = 0; i < elementsCount; ++i)
     {
@@ -121,7 +121,7 @@ void AssetsHelper::FullfillBasicVertexArray(RenderingData::BasicVertex* array, U
 }
 
 template<typename T>
-bool AssetsHelper::CreateVertexBuffer(FBXImporter::FBXModel* model, ID3D11Buffer** vertexBuffer)
+bool AssetsHelper::CreateModelBuffers(FBXImporter::FBXModel* model, ID3D11Buffer** vertexBuffer, ID3D11Buffer** indexBuffer)
 {
     // Vertex buffer description
     D3D11_BUFFER_DESC vertexDesc;
@@ -133,9 +133,9 @@ bool AssetsHelper::CreateVertexBuffer(FBXImporter::FBXModel* model, ID3D11Buffer
 
     T* vertices = new T[model->vertexCount];
 
-    if(std::is_same_v<T, RenderingData::BasicVertex>)
+    if(std::is_same_v<T, BasicVertex>)
     {
-        FullfillBasicVertexArray(reinterpret_cast<RenderingData::BasicVertex*>(vertices), model->vertexCount, model);
+        FullfillBasicVertexArray(reinterpret_cast<BasicVertex*>(vertices), model->vertexCount, model);
     }
     else
     {
@@ -154,6 +154,34 @@ bool AssetsHelper::CreateVertexBuffer(FBXImporter::FBXModel* model, ID3D11Buffer
         return false;
     }
 
+    // Index buffer data
+    WORD* indices = new WORD[model->indexCount];
+
+    for (int i = 0; i < model->indexCount; ++i)
+    {
+        indices[i] = model->indices[i];
+    }
+    
+    D3D11_SUBRESOURCE_DATA resourceData;
+    ZeroMemory(&resourceData, sizeof(resourceData));
+
+    // Create index buffer
+    D3D11_BUFFER_DESC indexBufferDesc;
+    ::ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
+    indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    indexBufferDesc.ByteWidth = sizeof( WORD ) * model->indexCount;
+    indexBufferDesc.CPUAccessFlags = 0;
+    resourceData.pSysMem = indices;
+    hr = m_pDx11App->m_pD3DDevice->CreateBuffer(&indexBufferDesc, &resourceData, indexBuffer);
+
+    delete indices;
+    
+    if (FAILED(hr)) {
+        ::MessageBox(m_pDx11App->m_hWnd, Utils::GetMessageFromHr(hr), L"Index Buffer Error", MB_OK);
+        return false;
+    }
+
     return true;
 }
-template bool AssetsHelper::CreateVertexBuffer<BasicVertex>(FBXImporter::FBXModel* model, ID3D11Buffer** vertexBuffer);
+template bool AssetsHelper::CreateModelBuffers<BasicVertex>(FBXImporter::FBXModel* model, ID3D11Buffer** vertexBuffer, ID3D11Buffer** indicesBuffer);

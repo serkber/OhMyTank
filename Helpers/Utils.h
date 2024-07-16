@@ -30,7 +30,7 @@ namespace Utils {
         return wText;
     }
     
-    inline void UnloadResource(ID3D11Resource** resource)
+    inline void UnloadD3D11Resource(ID3D11Resource** resource)
     {
         if(resource && *resource)
         {

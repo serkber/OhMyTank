@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClCompile Include="OMTGame.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OMTRender.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.vcxproj">
@@ -150,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OMTGame.h" />
+    <ClInclude Include="OMTRender.h" />
     <ClInclude Include="Resources.h" />
     <ClInclude Include="WaveBank.h" />
   </ItemGroup>

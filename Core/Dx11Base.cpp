@@ -1,7 +1,6 @@
 ﻿#include "Dx11Base.h"
 #include "Utils.h"
 #include <D3Dcompiler.h>
-#include "AssetsHelper.h"
 
 Dx11Base::Dx11Base()
 {
@@ -15,7 +14,6 @@ Dx11Base::Dx11Base()
     m_pDepthStencilView = nullptr;
     m_pDepthStencilState = nullptr;
     m_audEngine = nullptr;
-    m_assetsHelper = nullptr;
 }
 
 Dx11Base::~Dx11Base()
@@ -146,8 +144,6 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
         //Silent mode
     }
 
-    m_assetsHelper = new AssetsHelper(this);
-
     // Load content
     return LoadContent();
 }
@@ -162,7 +158,7 @@ void Dx11Base::Terminate()
 {    
     for(auto &resource : m_resources)
     {
-        Utils::UnloadResource(resource);
+        Utils::UnloadD3D11Resource(resource);
         resource = nullptr;
     }
 
@@ -170,12 +166,6 @@ void Dx11Base::Terminate()
     {
         m_audEngine->Suspend();
         m_audEngine = nullptr;
-    }
-    
-    if(m_assetsHelper)
-    {
-        delete m_assetsHelper;
-        m_assetsHelper = nullptr;
     }
     
     // Unload content

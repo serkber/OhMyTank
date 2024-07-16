@@ -6,8 +6,6 @@
 #define _USE_MATH_DEFINES
 #include "Audio.h"
 
-class AssetsHelper;
-
 class Dx11Base
 {
     // Constructors
@@ -16,7 +14,6 @@ public:
     virtual ~Dx11Base();
 
     // Methods
-public:
     bool Initialize(HWND hWnd, HINSTANCE hInst);
     void ReInitialize(HWND hWnd, HINSTANCE hInst);
     void Terminate();
@@ -25,7 +22,6 @@ public:
     void OnNewAudioDevice() noexcept;
 
     // Overrides
-public:
     virtual bool LoadContent() = 0;
     virtual void UnloadContent() = 0;
 
@@ -33,7 +29,6 @@ public:
     virtual void Render() = 0;
 
     // Attributes
-public:
     HWND m_hWnd;
     HINSTANCE m_hInst;
     ID3D11Device* m_pD3DDevice;
@@ -45,12 +40,12 @@ public:
     ID3D11DepthStencilState* m_pDepthStencilState;
     ID3D11DepthStencilView* m_pDepthStencilView;
     ID3D11ShaderResourceView* m_pDepthShaderResource;
-
-    AssetsHelper* m_assetsHelper;
-    std::vector<ID3D11Resource**> m_resources;
-
+    
     DirectX::AudioEngine* m_audEngine;
     bool m_retryAudio = false;
 
     POINT m_windSize;
+
+private:
+    std::vector<ID3D11Resource**> m_resources;
 };

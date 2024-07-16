@@ -17,7 +17,7 @@ public:
     bool CreateInputLayout(D3D11_INPUT_ELEMENT_DESC* descriptor, UINT elementsCount, ID3DBlob* vertexShaderBlob, ID3D11InputLayout** inputLayout);
     
     template <typename T>
-    bool CreateVertexBuffer(FBXImporter::FBXModel* model, ID3D11Buffer** vertexBuffer);
+    bool CreateModelBuffers(FBXImporter::FBXModel* model, ID3D11Buffer** vertexBuffer, ID3D11Buffer** indexBuffer);
 
 private:
     bool CompileShader(const wchar_t* shaderName, const char* shaderEntryPoint, LPCSTR shaderModel, ID3DBlob** buffer, LPCWSTR* errorMessage);

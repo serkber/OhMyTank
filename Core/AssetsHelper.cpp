@@ -6,11 +6,6 @@
 
 using RenderingData::BasicVertex;
 
-AssetsHelper::AssetsHelper(Dx11Base* dx11App)
-    : m_pDx11App(dx11App)
-{
-}
-
 template <typename T>
 bool AssetsHelper::LoadShader(const wchar_t* file, ID3DBlob** pShaderBlob, T** pShader)
 {
@@ -29,7 +24,7 @@ bool AssetsHelper::LoadShader(const wchar_t* file, ID3DBlob** pShaderBlob, T** p
     //Load vertex Shader
     if (!CompileShader(file, entryPoint, shaderModel, pShaderBlob, &shaderError))
     {
-        ::MessageBox(m_pDx11App->m_hWnd, shaderError, L"Vertex Shader Compilation Error", MB_OK);
+        ::MessageBox(Dx11Base::m_instance->m_hWnd, shaderError, L"Vertex Shader Compilation Error", MB_OK);
         return false;
     }
     
@@ -40,7 +35,7 @@ bool AssetsHelper::LoadShader(const wchar_t* file, ID3DBlob** pShaderBlob, T** p
 
     if(shaderType == VertexShader)
     {
-        m_pDx11App->m_pD3DDevice->CreateVertexShader(
+        Dx11Base::m_instance->m_pD3DDevice->CreateVertexShader(
             blob->GetBufferPointer(),
             blob->GetBufferSize(),
             nullptr,
@@ -48,14 +43,14 @@ bool AssetsHelper::LoadShader(const wchar_t* file, ID3DBlob** pShaderBlob, T** p
     }
     else if(shaderType == PixelShader)
     {
-        m_pDx11App->m_pD3DDevice->CreatePixelShader(
+        Dx11Base::m_instance->m_pD3DDevice->CreatePixelShader(
             blob->GetBufferPointer(),
             blob->GetBufferSize(),
             nullptr,
             reinterpret_cast<ID3D11PixelShader**>(pShader));
     }
     if (FAILED(hr)) {
-        ::MessageBox(m_pDx11App->m_hWnd, Utils::GetMessageFromHr(hr), L"Shader Creation Error", MB_OK);
+        ::MessageBox(Dx11Base::m_instance->m_hWnd, Utils::GetMessageFromHr(hr), L"Shader Creation Error", MB_OK);
         if (pShaderBlob)
             blob->Release();
         return false;
@@ -82,10 +77,10 @@ bool AssetsHelper::CompileShader(const wchar_t* shaderName, const char* shaderEn
 
 bool AssetsHelper::LoadTexture(const wchar_t* file, ID3D11Resource** texture, ID3D11ShaderResourceView** textureView)
 {
-    HRESULT hr = DirectX::CreateDDSTextureFromFile(m_pDx11App->m_pD3DDevice, m_pDx11App->m_pD3DContext, file, texture, textureView);
+    HRESULT hr = DirectX::CreateDDSTextureFromFile(Dx11Base::m_instance->m_pD3DDevice, Dx11Base::m_instance->m_pD3DContext, file, texture, textureView);
     if (FAILED(hr))
     {
-        ::MessageBox(m_pDx11App->m_hWnd, Utils::GetMessageFromHr(hr), L"Texture Load Error", MB_OK);
+        ::MessageBox(Dx11Base::m_instance->m_hWnd, Utils::GetMessageFromHr(hr), L"Texture Load Error", MB_OK);
         return false;
     }
 
@@ -95,14 +90,14 @@ bool AssetsHelper::LoadTexture(const wchar_t* file, ID3D11Resource** texture, ID
 bool AssetsHelper::CreateInputLayout(D3D11_INPUT_ELEMENT_DESC* descriptor, UINT elementsCount, ID3DBlob* vertexShaderBlob, ID3D11InputLayout** inputLayout)
 {
     // Create input layout
-    HRESULT hr = m_pDx11App->m_pD3DDevice->CreateInputLayout(
+    HRESULT hr = Dx11Base::m_instance->m_pD3DDevice->CreateInputLayout(
         descriptor,
         elementsCount,
         vertexShaderBlob->GetBufferPointer(),
         vertexShaderBlob->GetBufferSize(),
         inputLayout);
     if (FAILED(hr)) {
-        ::MessageBox(m_pDx11App->m_hWnd, Utils::GetMessageFromHr(hr), L"Input Layout Error", MB_OK);
+        ::MessageBox(Dx11Base::m_instance->m_hWnd, Utils::GetMessageFromHr(hr), L"Input Layout Error", MB_OK);
         return false;
     }
 
@@ -148,9 +143,9 @@ bool AssetsHelper::CreateModelBuffers(FBXImporter::FBXModel* model, ID3D11Buffer
     verticesData.pSysMem = vertices;
 
     // Create vertex buffer
-    HRESULT hr =  m_pDx11App->m_pD3DDevice->CreateBuffer(&vertexDesc, &verticesData, vertexBuffer);
+    HRESULT hr =  Dx11Base::m_instance->m_pD3DDevice->CreateBuffer(&vertexDesc, &verticesData, vertexBuffer);
     if (FAILED(hr)) {
-        ::MessageBox(m_pDx11App->m_hWnd, Utils::GetMessageFromHr(hr), L"Vertex Buffer Error", MB_OK);
+        ::MessageBox(Dx11Base::m_instance->m_hWnd, Utils::GetMessageFromHr(hr), L"Vertex Buffer Error", MB_OK);
         return false;
     }
 
@@ -173,12 +168,12 @@ bool AssetsHelper::CreateModelBuffers(FBXImporter::FBXModel* model, ID3D11Buffer
     indexBufferDesc.ByteWidth = sizeof( WORD ) * model->indexCount;
     indexBufferDesc.CPUAccessFlags = 0;
     resourceData.pSysMem = indices;
-    hr = m_pDx11App->m_pD3DDevice->CreateBuffer(&indexBufferDesc, &resourceData, indexBuffer);
+    hr = Dx11Base::m_instance->m_pD3DDevice->CreateBuffer(&indexBufferDesc, &resourceData, indexBuffer);
 
     delete indices;
     
     if (FAILED(hr)) {
-        ::MessageBox(m_pDx11App->m_hWnd, Utils::GetMessageFromHr(hr), L"Index Buffer Error", MB_OK);
+        ::MessageBox(Dx11Base::m_instance->m_hWnd, Utils::GetMessageFromHr(hr), L"Index Buffer Error", MB_OK);
         return false;
     }
 

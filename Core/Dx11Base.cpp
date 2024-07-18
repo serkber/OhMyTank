@@ -2,6 +2,8 @@
 #include "Utils.h"
 #include <D3Dcompiler.h>
 
+Dx11Base* Dx11Base::m_instance = nullptr;
+
 Dx11Base::Dx11Base()
 {
     m_hWnd = nullptr;
@@ -14,10 +16,19 @@ Dx11Base::Dx11Base()
     m_pDepthStencilView = nullptr;
     m_pDepthStencilState = nullptr;
     m_audEngine = nullptr;
+    Dx11Base::m_instance = this;
 }
 
 Dx11Base::~Dx11Base()
 {
+}
+
+void Dx11Base::GetWindowSize(HWND hWnd)
+{
+    RECT rc;
+    ::GetClientRect(hWnd, &rc);
+    m_windSize.x = rc.right - rc.left;
+    m_windSize.y = rc.bottom - rc.top;
 }
 
 bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
@@ -27,11 +38,8 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
     m_hInst = hInst;
 
     // Get window size
-    RECT rc;
-    ::GetClientRect(hWnd, &rc);
-    m_windSize.x = rc.right - rc.left;
-    m_windSize.y = rc.bottom - rc.top;
-
+    GetWindowSize(hWnd);
+    
     // Swap chain structure
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
     ::ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
@@ -143,24 +151,29 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
     {
         //Silent mode
     }
-
-    // Load content
-    return LoadContent();
 }
 
-void Dx11Base::ReInitialize(HWND hWnd, HINSTANCE hInst)
+void Dx11Base::ReleaseGraphicsResources()
 {
-    Terminate();
+    for(auto &resource : m_resources)
+    {
+        if(resource != nullptr)
+        {
+            Utils::UnloadD3D11Resource(resource);
+            resource = nullptr;
+        }
+    }
+}
+
+void Dx11Base::ReInitializeGraphics(HWND hWnd, HINSTANCE hInst)
+{
+    ReleaseGraphicsResources();
     Initialize(hWnd, hInst);
 }
 
 void Dx11Base::Terminate()
-{    
-    for(auto &resource : m_resources)
-    {
-        Utils::UnloadD3D11Resource(resource);
-        resource = nullptr;
-    }
+{
+    ReleaseGraphicsResources();
 
     if (m_audEngine)
     {

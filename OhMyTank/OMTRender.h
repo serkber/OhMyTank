@@ -4,12 +4,12 @@
 #include "FBXImporter.h"
 #include "Typedefs.h"
 
-class OMTGame;
-
 class OMTRender
 {
+friend class OMTGame;
+    
 public:
-    OMTRender(OMTGame *game);
+    OMTRender();
     ~OMTRender();
     void CreateCameraMatrix();
     bool LoadGraphicContent();
@@ -17,10 +17,9 @@ public:
     void SetBlendingMode();
     bool CreateTextureSampler();
     void Render();
+    void ReleaseResources();
 
 private:
-    OMTGame *m_game;
-
     ID3D11VertexShader* m_pVertexShader;
     ID3D11InputLayout* m_pBasicInputLayout;
     ID3D11PixelShader* m_pPixelShader;

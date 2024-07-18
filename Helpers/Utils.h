@@ -32,7 +32,7 @@ namespace Utils {
     
     inline void UnloadD3D11Resource(ID3D11Resource** resource)
     {
-        if(resource && *resource)
+        if(*resource)
         {
             (*resource)->Release();
         }

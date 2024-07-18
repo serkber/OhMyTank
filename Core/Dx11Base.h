@@ -13,15 +13,18 @@ public:
     Dx11Base();
     virtual ~Dx11Base();
 
+    static Dx11Base* m_instance;
+
     // Methods
     bool Initialize(HWND hWnd, HINSTANCE hInst);
-    void ReInitialize(HWND hWnd, HINSTANCE hInst);
     void Terminate();
     bool CompileShader(const wchar_t* shader_name, const char* shader_entry_point_name, LPCSTR shaderModel, ID3DBlob** buffer, LPCWSTR* errorMessage);
     bool CreateDepthStencilResources();
     void OnNewAudioDevice() noexcept;
+    void ReleaseGraphicsResources();
 
     // Overrides
+    virtual void ReInitializeGraphics(HWND hWnd, HINSTANCE hInst);
     virtual bool LoadContent() = 0;
     virtual void UnloadContent() = 0;
 
@@ -47,5 +50,6 @@ public:
     POINT m_windSize;
 
 private:
+    void GetWindowSize(HWND hwnd);
     std::vector<ID3D11Resource**> m_resources;
 };

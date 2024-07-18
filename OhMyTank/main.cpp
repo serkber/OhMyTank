@@ -6,7 +6,7 @@
 // Global variables
 HINSTANCE g_hInst;	// current instance
 HWND g_hWnd;		// main window handle
-OMTGame g_demo;
+OMTGame g_game;
 
 HDEVNOTIFY g_hNewAudio = nullptr;
 
@@ -41,7 +41,10 @@ HINSTANCE hInstance = GetModuleHandle(NULL);
         return -1;
 
     // Initialize demo
-    if (!g_demo.Initialize(g_hWnd, g_hInst))
+    if (!g_game.Initialize(g_hWnd, g_hInst))
+        return -1;
+
+    if(!g_game.LoadContent())
         return -1;
 
     // Listen for new audio devices
@@ -62,12 +65,12 @@ HINSTANCE hInstance = GetModuleHandle(NULL);
         }
 
         // Update and render
-        g_demo.Update();
-        g_demo.Render();
+        g_game.Update();
+        g_game.Render();
     }
 
-    // Terminate demo
-    g_demo.Terminate();
+    // Terminate game
+    g_game.Terminate();
 
     // Release Audio stuff
     if (g_hNewAudio)
@@ -101,12 +104,11 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassEx(&wcex);
 }
 
-
 // Creates the main window
 bool CreateMainWnd(int nCmdShow)
 {
     // Calculate main window size
-    RECT rc = { 0, 0, 800, 800 };
+    RECT rc = { 0, 0, 800, 600 };
     ::AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
     // Create the main window
@@ -147,26 +149,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     auto pInter = reinterpret_cast<const PDEV_BROADCAST_DEVICEINTERFACE>( pDev );
                     if ( pInter->dbcc_classguid == KSCATEGORY_AUDIO )
                     {
-                        g_demo.OnNewAudioDevice();
+                        g_game.OnNewAudioDevice();
                     }
                 }
             }
         }
         return 0;
-    case WM_RBUTTONDOWN:
-        g_demo.ProcessRightClick();
-        return 0;
-    case WM_LBUTTONDOWN:
-        g_demo.ProcessClick();
-        return 0;
-    case WM_SIZING:
-        g_demo.ReInitialize(g_hWnd, g_hInst);
+    case WM_SETFOCUS:
+        g_game.SetFocusState(true);
+    break;
+    case WM_KILLFOCUS:
+        g_game.SetFocusState(false);
         break;
+    case WM_EXITSIZEMOVE:
+        g_game.ReInitializeGraphics(hWnd, g_hInst);
+        break;
+    case WM_GETMINMAXINFO:
+        {
+            LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
+            lpMMI->ptMinTrackSize.x = 800;
+            lpMMI->ptMinTrackSize.y = 600;
+        }
     case WM_PAINT:
         hdc = ::BeginPaint(hWnd, &ps);
         ::EndPaint(hWnd, &ps);
         break;
-
     case WM_DESTROY:
         ::PostQuitMessage(0);
         break;

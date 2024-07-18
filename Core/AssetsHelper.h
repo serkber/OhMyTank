@@ -7,9 +7,7 @@
 
 class AssetsHelper
 {
-public:
-    AssetsHelper(Dx11Base* dx11App);
-    
+public:    
     template <typename T>
     bool LoadShader(const wchar_t* file, ID3DBlob** pVSBuffer, T** pVertexShader);
     
@@ -22,6 +20,4 @@ public:
 private:
     bool CompileShader(const wchar_t* shaderName, const char* shaderEntryPoint, LPCSTR shaderModel, ID3DBlob** buffer, LPCWSTR* errorMessage);
     void FullfillBasicVertexArray(RenderingData::BasicVertex* array, UINT elementsCount, FBXImporter::FBXModel* model);
-    
-    Dx11Base* m_pDx11App;
 };

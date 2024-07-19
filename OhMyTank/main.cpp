@@ -65,6 +65,7 @@ HINSTANCE hInstance = GetModuleHandle(NULL);
         }
 
         // Update and render
+        g_game.PreUpdate();
         g_game.Update();
         g_game.Render();
     }
@@ -98,7 +99,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
     wcex.lpszMenuName	= NULL;
-    wcex.lpszClassName	= L"BlankWndD3DClass";
+    wcex.lpszClassName	= L"OhMyTank";
     wcex.hIconSm		= NULL;
 
     return RegisterClassEx(&wcex);
@@ -112,7 +113,7 @@ bool CreateMainWnd(int nCmdShow)
     ::AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
     // Create the main window
-    g_hWnd = ::CreateWindow(L"BlankWndD3DClass", L"Blank D3D Window", 
+    g_hWnd = ::CreateWindow(L"OhMyTank", L"Oh My Tank!", 
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 
         rc.right - rc.left, rc.bottom - rc.top, 

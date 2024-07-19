@@ -17,6 +17,8 @@ Dx11Base::Dx11Base()
     m_pDepthStencilState = nullptr;
     m_audEngine = nullptr;
     Dx11Base::m_instance = this;
+
+    m_time = std::chrono::steady_clock::now();
 }
 
 Dx11Base::~Dx11Base()
@@ -124,16 +126,6 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
     CreateDepthStencilResources();
     // Bind depth stencil state
     m_pD3DContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
-
-    // Set the viewport
-    D3D11_VIEWPORT viewPort;
-    viewPort.Width = (float)m_windSize.x;
-    viewPort.Height = (float)m_windSize.y;
-    viewPort.MinDepth = 0.0f;
-    viewPort.MaxDepth = 1.0f;
-    viewPort.TopLeftX = 0;
-    viewPort.TopLeftY = 0;
-    m_pD3DContext->RSSetViewports(1, &viewPort);
     
     m_resources.push_back((ID3D11Resource**)&m_pD3DRenderTargetView);
     m_resources.push_back((ID3D11Resource**)&m_pSwapChain);
@@ -169,6 +161,17 @@ void Dx11Base::ReInitializeGraphics(HWND hWnd, HINSTANCE hInst)
 {
     ReleaseGraphicsResources();
     Initialize(hWnd, hInst);
+}
+
+void Dx11Base::PreUpdate()
+{
+    auto current = std::chrono::steady_clock::now();
+    m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(current - m_time).count() / (double)1000000;
+    m_elapsedTime += m_deltaTime;
+
+    std::cout << 1 / m_deltaTime << '\t' << " FPS" << '\n';
+    
+    m_time = current;
 }
 
 void Dx11Base::Terminate()

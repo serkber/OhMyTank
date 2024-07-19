@@ -161,19 +161,19 @@ void OMTInput::HandleMouse()
         float rightCam = 0;
         if(m_isWPressed)
         {
-            forwardCam += 1;
+            forwardCam += m_camSpeed;
         }
         if(m_isSPressed)
         {
-            forwardCam -= 1;
+            forwardCam -= m_camSpeed;
         }
         if(m_isDPressed)
         {
-            rightCam += 1;
+            rightCam += m_camSpeed;
         }
         if(m_isAPressed)
         {
-            rightCam -= 1;
+            rightCam -= m_camSpeed;
         }
 
         OMTGame::m_gameInstance->MoveCamera(forwardCam, rightCam);

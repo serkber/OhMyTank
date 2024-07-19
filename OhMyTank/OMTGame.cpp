@@ -9,8 +9,8 @@ OMTGame* OMTGame::m_gameInstance = nullptr;
 
 OMTGame::OMTGame()
 {
-    m_modelMatrix = DirectX::XMMatrixScaling(0.005, 0.005, 0.005);
-    m_modelMatrix *= DirectX::XMMatrixTranslation(0, 0, 3);
+    m_tankMatrix = DirectX::XMMatrixScaling(0.005, 0.005, 0.005);
+    m_tankMatrix *= DirectX::XMMatrixTranslation(0, 0, 3);
     m_gameInstance = this;
 }
 
@@ -93,10 +93,10 @@ void OMTGame::Update()
 
     auto scaleMatrix = DirectX::XMMatrixScaling(0.01, 0.01, 0.01);
     auto rotationMatrix = DirectX::XMMatrixRotationY(modelRot);
-    modelRot += 0.00005;
+    modelRot += 1 * m_deltaTime;
     auto positionMatrix = DirectX::XMMatrixTranslation(0, 0, 3);
     
-    m_modelMatrix = scaleMatrix * rotationMatrix * positionMatrix;
+    m_tankMatrix = scaleMatrix * rotationMatrix * positionMatrix;
     
     m_emitter.SetPosition(float3(m_input.m_mousePosNorm.x, 0, 0));
 }
@@ -104,25 +104,6 @@ void OMTGame::Update()
 void OMTGame::Render()
 {
     m_render.Render();
-}
-
-void OMTGame::ProcessClick()
-{
-}
-
-void OMTGame::ProcessRightClick()
-{
-    m_drawWire = !m_drawWire;
-
-    if(m_bangSound)
-    {
-        m_bangSound->Stop();
-        m_bangSound.release();
-    }
-
-    m_bangSound = m_waveBank->CreateInstance(m_rndBang(m_mt), DirectX::SoundEffectInstance_Use3D);
-    m_bangSound->Play();
-    m_bangSound->Apply3D(m_listener, m_emitter);
 }
 
 void OMTGame::RotateCamera(float horizontal, float vertical)
@@ -141,8 +122,8 @@ void OMTGame::PanCamera(float horizontal, float vertical)
 
 void OMTGame::MoveCamera(float forward, float right)
 {
-    auto forwardVec = DirectX::XMVectorScale(m_render.m_viewMatrix.r[2], forward * 0.001);
-    auto rightVec = DirectX::XMVectorScale(m_render.m_viewMatrix.r[0], right * 0.001);
+    auto forwardVec = DirectX::XMVectorScale(m_render.m_viewMatrix.r[2], forward * m_deltaTime);
+    auto rightVec = DirectX::XMVectorScale(m_render.m_viewMatrix.r[0], right * m_deltaTime);
     auto delta = DirectX::XMVectorAdd(forwardVec, rightVec);
     
     m_camPos = DirectX::XMVectorAdd(m_camPos, delta);

@@ -23,8 +23,6 @@ public:
     virtual void Update();
     virtual void Render();
 
-    void ProcessClick();
-    void ProcessRightClick();
     void RotateCamera(float horizontal, float vertical);
     void PanCamera(float horizontal, float vertical);
     void MoveCamera(float forward, float right);
@@ -51,8 +49,7 @@ private:
     DirectX::AudioEmitter  m_emitter;
 
     float modelRot = 0;
-    matrix m_modelMatrix;
-    bool m_drawWire = false;
+    matrix m_tankMatrix;
 
     float m_camRotX = 0, m_camRotY = 0;
     DirectX::XMVECTOR m_camPos;

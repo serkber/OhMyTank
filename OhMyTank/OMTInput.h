@@ -32,6 +32,8 @@ public:
     bool m_isControllingCamera = false;
     bool m_isCursorShown = true;
 
+    float m_camSpeed = 4;
+
 private:    
     LPDIRECTINPUT8 m_pDirectInput;
     LPDIRECTINPUTDEVICE8 m_pMouseDevice;

@@ -4,6 +4,8 @@
 #include <vector>
 #define _WIN32_WINNT 0x0602
 #define _USE_MATH_DEFINES
+#include <chrono>
+
 #include "Audio.h"
 
 class Dx11Base
@@ -27,7 +29,8 @@ public:
     virtual void ReInitializeGraphics(HWND hWnd, HINSTANCE hInst);
     virtual bool LoadContent() = 0;
     virtual void UnloadContent() = 0;
-
+    
+    virtual void PreUpdate();
     virtual void Update() = 0;
     virtual void Render() = 0;
 
@@ -43,6 +46,10 @@ public:
     ID3D11DepthStencilState* m_pDepthStencilState;
     ID3D11DepthStencilView* m_pDepthStencilView;
     ID3D11ShaderResourceView* m_pDepthShaderResource;
+
+    std::chrono::time_point<std::chrono::steady_clock> m_time;
+    double m_elapsedTime = 0;
+    double m_deltaTime = 0;
     
     DirectX::AudioEngine* m_audEngine;
     bool m_retryAudio = false;

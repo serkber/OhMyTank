@@ -20,11 +20,11 @@ bool OMTInput::InitializeInput()
     
     // Create DirectInput8 device
     hr = ::DirectInput8Create(
-        OMTGame::m_gameInstance->m_hInst, DIRECTINPUT_VERSION, 
+        OMTGame::m_pGameInstance->m_hInst, DIRECTINPUT_VERSION, 
         IID_IDirectInput8, (void**)&m_pDirectInput, 0);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Direct Input Device Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Direct Input Device Error", MB_OK);
         return false;
     }
     
@@ -32,25 +32,25 @@ bool OMTInput::InitializeInput()
     hr = m_pDirectInput->CreateDevice(GUID_SysMouse, &m_pMouseDevice, nullptr);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Create Device Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Create Device Error", MB_OK);
         return false;
     }
     hr = m_pMouseDevice->SetDataFormat(&c_dfDIMouse);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Data Format Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Data Format Error", MB_OK);
         return false;
     }
-    hr = m_pMouseDevice->SetCooperativeLevel(OMTGame::m_gameInstance->m_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+    hr = m_pMouseDevice->SetCooperativeLevel(OMTGame::m_pGameInstance->m_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Cooperative Level Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Cooperative Level Error", MB_OK);
         return false;
     }
     hr = m_pMouseDevice->Acquire();
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Acquire Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Mouse Acquire Error", MB_OK);
         return false;
     }
     
@@ -58,25 +58,25 @@ bool OMTInput::InitializeInput()
     hr = m_pDirectInput->CreateDevice(GUID_SysKeyboard, &m_pKeyboardDevice, 0);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Create Device Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Create Device Error", MB_OK);
         return false;
     }
     hr = m_pKeyboardDevice->SetDataFormat(&c_dfDIKeyboard);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Data Format Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Data Format Error", MB_OK);
         return false;
     }
-    hr = m_pKeyboardDevice->SetCooperativeLevel(OMTGame::m_gameInstance->m_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+    hr = m_pKeyboardDevice->SetCooperativeLevel(OMTGame::m_pGameInstance->m_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Cooperative Level Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Cooperative Level Error", MB_OK);
         return false;
     }
     hr = m_pKeyboardDevice->Acquire();
     if (FAILED(hr))
     {
-        ::MessageBox(OMTGame::m_gameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Acquire Error", MB_OK);
+        ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), L"Keyboard Acquire Error", MB_OK);
         return false;
     }
 
@@ -91,10 +91,10 @@ void OMTInput::HandleMouse()
         GetCursorPos(&m_mousePos);
         
         m_mousePosRelative = m_mousePos;
-        ScreenToClient(OMTGame::m_gameInstance->m_hWnd, &m_mousePosRelative);
+        ScreenToClient(OMTGame::m_pGameInstance->m_hWnd, &m_mousePosRelative);
         
-        m_mousePosNorm.x = (float)m_mousePosRelative.x / OMTGame::m_gameInstance->m_windSize.x;
-        m_mousePosNorm.y = (1.0f - (float)m_mousePosRelative.y / OMTGame::m_gameInstance->m_windSize.y);
+        m_mousePosNorm.x = (float)m_mousePosRelative.x / OMTGame::m_pGameInstance->m_windSize.x;
+        m_mousePosNorm.y = (1.0f - (float)m_mousePosRelative.y / OMTGame::m_pGameInstance->m_windSize.y);
         m_mousePosNorm.x -= 0.5f;
         m_mousePosNorm.x *= 2.0f;
         m_mousePosNorm.y -= 0.5f;
@@ -135,6 +135,12 @@ void OMTInput::HandleMouse()
     }
 
 #ifdef _DEBUG
+    OMTGame::m_pGameInstance->m_isPainting = false;
+    if(m_isLeftButtonDown && m_isMouseOverWindow)
+    {
+        OMTGame::m_pGameInstance->m_isPainting = true;
+    }
+    
     if((m_isRightButtonDown || m_isMiddleButtonDown) && m_isMouseOverWindow)
     {
         if(m_isCursorShown)
@@ -148,13 +154,13 @@ void OMTInput::HandleMouse()
         
         if(m_isRightButtonDown)
         {
-            OMTGame::m_gameInstance->RotateCamera(mouseData.lX / (float)OMTGame::m_gameInstance->m_windSize.x,
-                mouseData.lY / (float)OMTGame::m_gameInstance->m_windSize.y);
+            OMTGame::m_pGameInstance->RotateCamera(mouseData.lX / (float)OMTGame::m_pGameInstance->m_windSize.x,
+                mouseData.lY / (float)OMTGame::m_pGameInstance->m_windSize.y);
         }
         if(m_isMiddleButtonDown)
         {
-            OMTGame::m_gameInstance->PanCamera(mouseData.lX / (float)OMTGame::m_gameInstance->m_windSize.x,
-                mouseData.lY / (float)OMTGame::m_gameInstance->m_windSize.y);
+            OMTGame::m_pGameInstance->PanCamera(mouseData.lX / (float)OMTGame::m_pGameInstance->m_windSize.x,
+                mouseData.lY / (float)OMTGame::m_pGameInstance->m_windSize.y);
         }
         
         float forwardCam = 0;
@@ -176,7 +182,7 @@ void OMTInput::HandleMouse()
             rightCam -= m_camSpeed;
         }
 
-        OMTGame::m_gameInstance->MoveCamera(forwardCam, rightCam);
+        OMTGame::m_pGameInstance->MoveCamera(forwardCam, rightCam);
     }
     else
     {

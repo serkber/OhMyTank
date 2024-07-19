@@ -5,13 +5,14 @@
 #include "OMTRender.h"
 #include "SimpleMath.h"
 
-OMTGame* OMTGame::m_gameInstance = nullptr;
+OMTGame* OMTGame::m_pGameInstance = nullptr;
 
 OMTGame::OMTGame()
 {
     m_tankMatrix = DirectX::XMMatrixScaling(0.005, 0.005, 0.005);
     m_tankMatrix *= DirectX::XMMatrixTranslation(0, 0, 3);
-    m_gameInstance = this;
+    m_camPos = DirectX::XMVectorSet(0, 1.5, -3, 0);
+    m_pGameInstance = this;
 }
 
 void OMTGame::ReInitializeGraphics(HWND hWnd, HINSTANCE hInst)
@@ -34,15 +35,15 @@ bool OMTGame::LoadContent()
     
     m_rndBang = std::uniform_int_distribution<int>(0, 3);
 
-    if(!m_waveBank)
-    {
-        m_waveBank = std::make_unique<DirectX::WaveBank>(m_audEngine, L"XACT/Win/WaveBank.xwb");
-        m_ambientMusic = m_waveBank->CreateInstance( XACT_WAVEBANK_WAVEBANK_SPACESHIP_THEME );
-        if ( m_ambientMusic )
-        {
-            m_ambientMusic->Play(true);
-        }
-    }
+    // if(!m_waveBank)
+    // {
+    //     m_waveBank = std::make_unique<DirectX::WaveBank>(m_audEngine, L"XACT/Win/WaveBank.xwb");
+    //     m_ambientMusic = m_waveBank->CreateInstance( XACT_WAVEBANK_WAVEBANK_SPACESHIP_THEME );
+    //     if ( m_ambientMusic )
+    //     {
+    //         m_ambientMusic->Play(true);
+    //     }
+    // }
         
     return true;
 }
@@ -92,8 +93,8 @@ void OMTGame::Update()
     //std::cout << m_input.m_isLeftButtonDown << std::endl;
 
     auto scaleMatrix = DirectX::XMMatrixScaling(0.01, 0.01, 0.01);
-    auto rotationMatrix = DirectX::XMMatrixRotationY(modelRot);
-    modelRot += 1 * m_deltaTime;
+    auto rotationMatrix = DirectX::XMMatrixRotationY(m_tankRot);
+    m_tankRot += 1 * m_deltaTime;
     auto positionMatrix = DirectX::XMMatrixTranslation(0, 0, 3);
     
     m_tankMatrix = scaleMatrix * rotationMatrix * positionMatrix;

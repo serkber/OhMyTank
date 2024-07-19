@@ -14,7 +14,7 @@ class OMTGame : public Dx11Base
 public:
     OMTGame();
 
-    static OMTGame* m_gameInstance;
+    static OMTGame* m_pGameInstance;
 
 // Overrides
     void ReInitializeGraphics(HWND hWnd, HINSTANCE hInst) override;
@@ -32,6 +32,7 @@ private:
     OMTRender m_render;
     OMTInput m_input;
     bool m_isWindowFocused = true;
+    bool m_isPainting;
 
     bool CreateConstantBuffers();
     
@@ -48,7 +49,7 @@ private:
     DirectX::AudioListener m_listener;
     DirectX::AudioEmitter  m_emitter;
 
-    float modelRot = 0;
+    float m_tankRot = 0;
     matrix m_tankMatrix;
 
     float m_camRotX = 0, m_camRotY = 0;

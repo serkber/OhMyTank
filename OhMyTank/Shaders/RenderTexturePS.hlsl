@@ -6,5 +6,6 @@ struct vsoutput {
 
 float4 psmain(vsoutput input) : SV_TARGET
 {
-    return float4(1, 0, 0, 1);
+    float val = 1 - length(input.uv - 0.5) * 2;
+    return float4(1, 1, 1, val);
 }

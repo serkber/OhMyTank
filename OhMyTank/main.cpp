@@ -109,7 +109,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 bool CreateMainWnd(int nCmdShow)
 {
     // Calculate main window size
-    RECT rc = { 0, 0, 800, 600 };
+    RECT rc = { 0, 0, 1024, 768 };
     ::AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
     // Create the main window
@@ -128,7 +128,6 @@ bool CreateMainWnd(int nCmdShow)
 
     return true;
 }
-
 
 // Processes messages for the main window
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

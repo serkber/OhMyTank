@@ -124,8 +124,6 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
 
     // Depth test stuff
     CreateDepthStencilResources();
-    // Bind depth stencil state
-    m_pD3DContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
     
     m_resources.push_back((ID3D11Resource**)&m_pD3DRenderTargetView);
     m_resources.push_back((ID3D11Resource**)&m_pSwapChain);
@@ -249,6 +247,19 @@ bool Dx11Base::CreateDepthStencilResources()
     hr = m_pD3DDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilState);
     if (FAILED(hr)) {
         ::MessageBox(m_hWnd, Utils::GetMessageFromHr(hr), L"Depth Stencil State Error", MB_OK);
+        return false;
+    }    
+
+    //ZWrite ZTest Disabled
+    D3D11_DEPTH_STENCIL_DESC dsDesc;
+    ZeroMemory(&dsDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+    dsDesc.DepthEnable = FALSE; // Disable depth testing
+    dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // Disable depth writing
+    dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS; // Depth test always passes (but it's disabled anyway)
+    dsDesc.StencilEnable = FALSE;
+    hr = m_pD3DDevice->CreateDepthStencilState(&dsDesc, &m_pDepthStencilStateDisabled);
+    if (FAILED(hr)) {
+        ::MessageBox(m_hWnd, Utils::GetMessageFromHr(hr), L"Depth Stencil State disabled Error", MB_OK);
         return false;
     }
     

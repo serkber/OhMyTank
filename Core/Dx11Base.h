@@ -44,6 +44,7 @@ public:
 
     ID3D11Texture2D* m_pDepthTexture;
     ID3D11DepthStencilState* m_pDepthStencilState;
+    ID3D11DepthStencilState* m_pDepthStencilStateDisabled;
     ID3D11DepthStencilView* m_pDepthStencilView;
     ID3D11ShaderResourceView* m_pDepthShaderResource;
 

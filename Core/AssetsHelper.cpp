@@ -112,6 +112,10 @@ void AssetsHelper::FullfillBasicVertexArray(BasicVertex* array, UINT elementsCou
         array[i].nor = model->vertices[i].normal;
         array[i].uv.x = model->vertices[i].uv.x;
         array[i].uv.y = 1 - model->vertices[i].uv.y;
+        array[i].col.x = model->vertices[i].color.x;
+        array[i].col.y = model->vertices[i].color.y;
+        array[i].col.z = model->vertices[i].color.z;
+        array[i].col.w = model->vertices[i].color.w;
     }
 }
 

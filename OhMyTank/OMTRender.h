@@ -9,9 +9,9 @@ class OMTRender
     struct DataCB
     {
         float elapsedTime;
-        float padding1;
+        float mouseX;
         float padding2;
-        float padding3;
+        float grassfieldSize;
     };
     
 friend class OMTGame;
@@ -23,7 +23,7 @@ public:
 bool SetupRenderTexture();
 bool LoadGraphicContent();
     bool CreateConstantBuffers();
-    void SetBlendingMode();
+    void CreateBlendingResources();
     bool CreateTextureSampler();
 void SetRenderViewport(float width, float height);
 void RenderGrass();
@@ -35,6 +35,7 @@ private:
     ID3D11InputLayout* m_pBasicInputLayout;
     ID3D11SamplerState* m_pTextureSampler;
     ID3D11BlendState* m_pAlphaBlendState;
+    ID3D11BlendState* m_pMultiplyBlendState;
     
     //Tank Resources    
     FBXImporter::FBXModel m_tankModel;
@@ -64,6 +65,7 @@ private:
     ID3D11Buffer* m_pDataCB;
 
     //Render texture stuff
+    double renderTextureTimer = 0;
     ID3D11VertexShader* m_pRenderTextureVS;
     ID3D11PixelShader* m_pRenderTexturePS;
     ID3D11VertexShader* m_pTextureDebugVS;

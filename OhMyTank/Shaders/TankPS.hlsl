@@ -13,9 +13,11 @@ float4 psmain(vsoutput input) : SV_TARGET
     light += saturate(dot(input.normal, float3(-1, 0, -1))) * 0.2;
 	float3 color = Texture.Sample(TextureSampler, input.uv).rgb;
 	
-	return float4(color * light, 1);
+	//return float4(color * light, 1);
 
     float val = saturate(dot(input.normal, float3(1, 1, -1)) * 0.7);
     val += saturate(dot(input.normal, float3(-1, 0, -1))) * 0.2;
-    return float4(val, val, val, 1);
+
+	float4 col = float4(0.3, 0.5, 0.15, 1) * val;
+    return col;
 }

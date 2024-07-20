@@ -6,13 +6,14 @@ cbuffer cbChangesEveryFrame : register(b0)
 struct vsoutput {
     float4 position : SV_POSITION;
     float3 normal : NORMAL;
-    float2 uvs : UV;
+    float2 uv : UV;
 };
 
 struct vsinput {
     float4 position : POSITION;
     float3 normal : NORMAL;
-    float2 uvs : UV;
+    float2 uv : UV;
+    float4 color : COLOR;
 };
 
 vsoutput vsmain(vsinput input)
@@ -21,7 +22,7 @@ vsoutput vsmain(vsinput input)
 	
     output.position = mul(input.position, modelMatrix);
     output.normal = input.normal;
-    output.uvs = input.uvs;
+    output.uv = input.uv;
 
     return output;
 }

@@ -15,6 +15,7 @@ public:
         float3 position;
         float3 normal;
         float2 uv;
+        float4 color;
     };
     struct FBXModel
     {
@@ -66,6 +67,7 @@ private:
     void DecodeMesh();
     void UpdateReplacements(std::vector<std::pair<int, int>>* replacements, int oldIndex, int newIndex);
     void ReplaceInIndices(std::vector<int>* triIndices, int oldIndex, int newIndex);
+    bool CompareFloat4(float4 one, float4 two);
     static bool CompareFloat3(float3 one, float3 two);
     static bool CompareFloat2(float2 one, float2 two);
     
@@ -74,8 +76,10 @@ private:
     uint32_t m_indicesCount;
     int* m_posIndices;
     int* m_uvIndices;
+    int* m_colorsIndices;
     float3* m_normals;
     float2* m_uvs;
     float3* m_positions;
+    float4* m_colors;
     NormalsMode m_normals_mode = Undefined;
 };

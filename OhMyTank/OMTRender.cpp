@@ -31,6 +31,7 @@ OMTRender::OMTRender()
     m_pRenderTexturePS = nullptr;
     m_pGrassFieldVS = nullptr;
     m_pGrassFieldPS = nullptr;
+    m_pMultiplyBlendState = nullptr;
     m_pVertexBufferGrassField = nullptr;
     m_pIndexBufferGrassField = nullptr;
     m_viewMatrix = DirectX::XMMatrixIdentity();
@@ -56,14 +57,15 @@ void OMTRender::CreateCameraMatrix()
     m_projMatrix = DirectX::XMMatrixTranspose(m_projMatrix);
 }
 
+#define RENDER_TEXTURE_SIZE 128
 bool OMTRender::SetupRenderTexture()
 {
     D3D11_TEXTURE2D_DESC desc;
     desc.ArraySize = 1;
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
-    desc.Width = 512;
-    desc.Height = 512;
+    desc.Width = RENDER_TEXTURE_SIZE;
+    desc.Height = RENDER_TEXTURE_SIZE;
     desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     desc.MipLevels = 1;
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
@@ -89,6 +91,9 @@ bool OMTRender::SetupRenderTexture()
         MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), TEXT("Create render target ERROR"), MB_OK);
         return false;
     }
+    
+    float bgColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f }; 
+    OMTGame::m_pGameInstance->m_pD3DContext->ClearRenderTargetView(m_pRenderTextureTargetView, bgColor);
     
     return true;
 }
@@ -176,7 +181,7 @@ bool OMTRender::LoadGraphicContent()
         return false;
     }
 
-    SetBlendingMode();
+    CreateBlendingResources();
 
     CreateTextureSampler();
 
@@ -204,6 +209,7 @@ bool OMTRender::LoadGraphicContent()
     m_resources.push_back((ID3D11Resource**)&m_pRenderTextureVS);
     m_resources.push_back((ID3D11Resource**)&m_pGrassFieldVS);
     m_resources.push_back((ID3D11Resource**)&m_pGrassFieldPS);
+    m_resources.push_back((ID3D11Resource**)&m_pMultiplyBlendState);
     m_resources.push_back((ID3D11Resource**)&m_pVertexBufferGrassField);
     m_resources.push_back((ID3D11Resource**)&m_pIndexBufferGrassField );
 
@@ -254,7 +260,7 @@ bool OMTRender::CreateConstantBuffers()
     return true;
 }
 
-void OMTRender::SetBlendingMode()
+void OMTRender::CreateBlendingResources()
 {
     D3D11_BLEND_DESC blendDesc;
     ::ZeroMemory(&blendDesc, sizeof(blendDesc));
@@ -266,19 +272,19 @@ void OMTRender::SetBlendingMode()
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
     blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;    
+    OMTGame::m_pGameInstance->m_pD3DDevice->CreateBlendState(&blendDesc, &m_pAlphaBlendState);
 
     // Multiply
-    // blendDesc.RenderTarget[0].BlendEnable = TRUE;
-    // blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ZERO;
-    // blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_SRC_COLOR;
-    // blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-    // blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    // blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-    // blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-    // blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    
-    OMTGame::m_pGameInstance->m_pD3DDevice->CreateBlendState(&blendDesc, &m_pAlphaBlendState);
+    blendDesc.RenderTarget[0].BlendEnable = TRUE;
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_SRC_COLOR;
+    blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    OMTGame::m_pGameInstance->m_pD3DDevice->CreateBlendState(&blendDesc, &m_pMultiplyBlendState);
 }
 
 bool OMTRender::CreateTextureSampler()
@@ -312,6 +318,8 @@ void OMTRender::SetRenderViewport(float width, float height)
     OMTGame::m_pGameInstance->m_pD3DContext->RSSetViewports(1, &viewPort);
 }
 
+#define GRASS_FIELD_SIZE 100
+
 void OMTRender::RenderGrass()
 {
     UINT stride = sizeof(BasicVertex);
@@ -325,12 +333,13 @@ void OMTRender::RenderGrass()
     context->IASetIndexBuffer(m_pIndexBufferGrassField, DXGI_FORMAT_R16_UINT, 0);
     context->VSSetShaderResources(0, 1, &m_pRenderTextureResource);
 
-    for (int x = 0; x < 10; ++x)
+    float grassOffset = GRASS_FIELD_SIZE / 2 - 0.5;
+    for (int x = 0; x < GRASS_FIELD_SIZE; ++x)
     {
-        for (int y = 0; y < 10; ++y)
+        for (int y = 0; y < GRASS_FIELD_SIZE; ++y)
         {    
             auto grassMatrix = DirectX::XMMatrixScaling(.1, .1, .1);
-            grassMatrix *= DirectX::XMMatrixTranslation(x - 5, 0 ,y - 5);
+            grassMatrix *= DirectX::XMMatrixTranslation(x - grassOffset, 0 ,y - grassOffset);
             grassMatrix = DirectX::XMMatrixTranspose(grassMatrix);
             context->UpdateSubresource(m_pModelCB, 0, nullptr, &grassMatrix, 0, 0);
     
@@ -351,6 +360,8 @@ void OMTRender::Render()
     DataCB cb;
     ::ZeroMemory(&cb, sizeof(DataCB));
     cb.elapsedTime = OMTGame::m_pGameInstance->m_elapsedTime;
+    cb.mouseX = OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x;
+    cb.grassfieldSize = GRASS_FIELD_SIZE;
     context->UpdateSubresource(m_pDataCB, 0, nullptr, &cb, 0, 0);
     
     // Set stuff
@@ -369,37 +380,48 @@ void OMTRender::Render()
 
     if(OMTGame::m_pGameInstance->m_isPainting)
     {
-        float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        context->OMSetBlendState(m_pAlphaBlendState, blendFactor, 0xFFFFFFFF);
-        context->OMSetRenderTargets(1, &m_pRenderTextureTargetView, nullptr);
-        SetRenderViewport(512, 512);
-        context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
-        context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
-
-        auto relativeMouse = DirectX::XMVector2Transform(
-            DirectX::XMVectorSet(OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x, OMTGame::m_pGameInstance->m_input.m_mousePosNorm.y, 0, 0),
-            inversDebugTexMatrix
-            );
+        if(renderTextureTimer < 0.0166666)
+        {
+            renderTextureTimer += OMTGame::m_pGameInstance->m_deltaTime;
+        }
+        else
+        {
+            renderTextureTimer = 0;
         
-        auto brushMatrix = DirectX::XMMatrixScaling(0.25, 0.25, 0.25);
-        brushMatrix *= DirectX::XMMatrixTranslation(relativeMouse.m128_f32[0] * 2, -relativeMouse.m128_f32[1] * 2, 0);
-        brushMatrix = XMMatrixTranspose(brushMatrix);
-        context->UpdateSubresource(m_pModelCB, 0, nullptr, &brushMatrix, 0, 0);
-        context->VSSetShader(m_pRenderTextureVS, nullptr, 0);
-        context->PSSetShader(m_pRenderTexturePS, nullptr, 0);
-        context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+            float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+            context->OMSetBlendState(m_pMultiplyBlendState, blendFactor, 0xFFFFFFFF);
+            //context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+            context->OMSetRenderTargets(1, &m_pRenderTextureTargetView, nullptr);
+            context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
+            SetRenderViewport(RENDER_TEXTURE_SIZE, RENDER_TEXTURE_SIZE);
+            context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
+            context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
+
+            auto relativeMouse = DirectX::XMVector2Transform(
+                DirectX::XMVectorSet(OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x, OMTGame::m_pGameInstance->m_input.m_mousePosNorm.y, 0, 0),
+                inversDebugTexMatrix
+                );
+        
+            auto brushMatrix = DirectX::XMMatrixScaling(0.2, 0.2, 0.2);
+            brushMatrix *= DirectX::XMMatrixTranslation(relativeMouse.m128_f32[0] * 2, -relativeMouse.m128_f32[1] * 2, 0);
+            brushMatrix = XMMatrixTranspose(brushMatrix);
+            context->UpdateSubresource(m_pModelCB, 0, nullptr, &brushMatrix, 0, 0);
+            context->VSSetShader(m_pRenderTextureVS, nullptr, 0);
+            context->PSSetShader(m_pRenderTexturePS, nullptr, 0);
+            context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+        }
     }
 
     // World painting
     ///////////////////////////////
-    // Clear back buffer
-    float bgColor[4] = { 0.2f, 0.2f, 0.3f, 1.0f };
+    float bgColor[4] = { 0.2f, 0.2f, 0.15f, 1.0f };
     context->ClearRenderTargetView(OMTGame::m_pGameInstance->m_pD3DRenderTargetView, bgColor);
     context->ClearDepthStencilView(OMTGame::m_pGameInstance->m_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     // Set the render target
     context->OMSetRenderTargets(1, &OMTGame::m_pGameInstance->m_pD3DRenderTargetView, OMTGame::m_pGameInstance->m_pDepthStencilView);
     SetRenderViewport(OMTGame::m_pGameInstance->m_windSize.x,OMTGame::m_pGameInstance->m_windSize.y);
     context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+    context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilState, 0);
     //Update camera buffers
     context->UpdateSubresource(m_pViewCB, 0, nullptr, &m_viewMatrix, 0, 0);
     context->UpdateSubresource(m_pProjCB, 0, nullptr, &m_projMatrix, 0, 0);
@@ -422,6 +444,8 @@ void OMTRender::Render()
 
     //Render Texture debug drawcall
     //////////////////////////////////
+    float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    context->OMSetBlendState(m_pAlphaBlendState, blendFactor, 0xFFFFFFFF);
     context->OMSetRenderTargets(1, &OMTGame::m_pGameInstance->m_pD3DRenderTargetView, nullptr);
     SetRenderViewport(OMTGame::m_pGameInstance->m_windSize.x,OMTGame::m_pGameInstance->m_windSize.y);
     context->VSSetShader(m_pTextureDebugVS, nullptr, 0);

@@ -11,7 +11,9 @@ OMTGame::OMTGame()
 {
     m_tankMatrix = DirectX::XMMatrixScaling(0.005, 0.005, 0.005);
     m_tankMatrix *= DirectX::XMMatrixTranslation(0, 0, 3);
-    m_camPos = DirectX::XMVectorSet(0, 1.5, -3, 0);
+    m_camPos = DirectX::XMVectorSet(0, 4, -20, 0);
+    m_camRotY = 0.349066;
+    m_camRotX = 0;
     m_pGameInstance = this;
 }
 

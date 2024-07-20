@@ -52,6 +52,6 @@ private:
     float m_tankRot = 0;
     matrix m_tankMatrix;
 
-    float m_camRotX = 0, m_camRotY = 0;
+    float m_camRotX, m_camRotY;
     DirectX::XMVECTOR m_camPos;
 };

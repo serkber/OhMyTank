@@ -97,6 +97,30 @@ void FBXImporter::EvaluateWord(const std::string& text)
             m_uvIndices[i] = std::stof(uvsIndices[i]);
         }
     }
+
+    if(text._Equal("Colors:"))
+    {
+        uint32_t numColors;
+        const auto colors = GetNextRawData(numColors);
+        m_colors = new float4[numColors / 4];
+        for (int i = 0, j = 0; i < numColors / 4; ++i, j += 4)
+        {            
+            m_colors[i].x = std::stof(colors[j]);
+            m_colors[i].y = std::stof(colors[j + 1]);
+            m_colors[i].z = std::stof(colors[j + 2]);
+            m_colors[i].w = std::stof(colors[j + 3]);
+        }
+    }
+    
+    if (text._Equal("ColorIndex:"))
+    {
+        const auto colorsIndices = GetNextRawData(m_indicesCount);
+        m_colorsIndices = new int[m_indicesCount];
+        for (int i = 0; i < m_indicesCount; ++i)
+        {
+            m_colorsIndices[i] = std::stof(colorsIndices[i]);
+        }
+    }
 }
 
 std::vector<std::string> FBXImporter::GetNextRawData(uint32_t& numElements)
@@ -133,6 +157,7 @@ void FBXImporter::DecodeMesh()
     std::vector<float3> allPositions(m_indicesCount);
     std::vector<float3> allNormals(m_indicesCount);
     std::vector<float2> allUvs(m_indicesCount);
+    std::vector<float4> allColors(m_indicesCount);
 
     Utils::StartTimeMeasure();
     for (int i = 0; i < m_indicesCount; ++i)
@@ -141,6 +166,10 @@ void FBXImporter::DecodeMesh()
         // std::cout << m_positions[m_posIndices[i]].x << ' ' << m_positions[m_posIndices[i]].y << ' ' << m_positions[m_posIndices[i]].z << "      " << m_normals[i].x << ' ' << m_normals[i].y << ' ' << m_normals[i].z << std::endl;
         allPositions[i] = m_positions[m_posIndices[i]];
         allUvs[i]= m_uvs[m_uvIndices[i]];
+        if(m_colors != nullptr)
+        {
+            allColors[i] = m_colors[m_colorsIndices[i]];
+        }
 
         if(m_normals_mode == ByPolygonVertex)
         {
@@ -167,6 +196,7 @@ void FBXImporter::DecodeMesh()
         auto posOne = allPositions[allIndices[i1]];
         auto uvOne = allUvs[allIndices[i1]];
         auto norOne = allNormals[allIndices[i1]];
+        auto colOne = allColors[allIndices[i1]];
 
         if(std::find(replacedRaw.begin(), replacedRaw.end(), indexOne) != replacedRaw.end())
         {
@@ -179,8 +209,9 @@ void FBXImporter::DecodeMesh()
             auto posTwo = allPositions[allIndices[i2]];
             auto uvTwo = allUvs[allIndices[i2]];
             auto norTwo = allNormals[allIndices[i2]];
+            auto colTwo = allColors[allIndices[i2]];
     
-            if(CompareFloat3(posOne, posTwo) && CompareFloat2(uvOne, uvTwo) && CompareFloat3(norOne, norTwo))
+            if(CompareFloat3(posOne, posTwo) && CompareFloat2(uvOne, uvTwo) && CompareFloat3(norOne, norTwo) && CompareFloat4(colOne, colTwo))
             {
                 replacements.push_back(std::make_pair(indexOne, indexTwo));
                 replacedRaw.push_back(indexTwo);
@@ -216,6 +247,7 @@ void FBXImporter::DecodeMesh()
         m_model.vertices[vertexIndex].position = allPositions[i];
         m_model.vertices[vertexIndex].normal = allNormals[i];
         m_model.vertices[vertexIndex].uv = allUvs[i];
+        m_model.vertices[vertexIndex].color = allColors[i];
     
         // std::cout << allPositions[i].x << ' ' << allPositions[i].y << "     ";
         // std::cout << allUvs[i].x << ' ' << allUvs[i].y << std::endl;
@@ -264,6 +296,11 @@ void FBXImporter::ReplaceInIndices(std::vector<int> *triIndices, int oldIndex, i
             --ind;
         }
     }
+}
+
+bool FBXImporter::CompareFloat4(float4 one, float4 two)
+{
+    return one.x == two.x && one.y == two.y && one.z == two.z && one.w == one.w;
 }
 
 bool FBXImporter::CompareFloat3(float3 one, float3 two)

@@ -1,24 +1,25 @@
-cbuffer modelCB : register(b0)
+cbuffer model : register(b0)
 {
     matrix modelMatrix;
 };
 
-cbuffer viewCB : register(b1)
+cbuffer view : register(b1)
 {
     matrix viewMatrix;
 };
 
-cbuffer projCB : register(b2)
+cbuffer projection : register(b2)
 {
     matrix projMatrix;
 };
 
-cbuffer dataCB : register(b3)
+cbuffer data : register(b3)
 {
     float elapsedTime;
     float mouseX;
-    float padding2;
+    float square;
     float grassFieldSize;
+    float grassPos;
 };
 
 Texture2D Texture : register(t0);
@@ -63,7 +64,7 @@ float gnoise(float2 n) {
 
 vsoutput vsmain(vsinput input)
 {
-	vsoutput output;
+	vsoutput output = (vsoutput)0;
 	
     output.position = mul(input.position, modelMatrix);
     float2 bladePos = float2( modelMatrix._41, modelMatrix._43 ) + input.color.rg;
@@ -77,7 +78,8 @@ vsoutput vsmain(vsinput input)
 // Tip height
     output.color = gnoise(bladePos / 2);
 
-    float2 worldUv = ((output.position.xz + grassFieldSize / 2) / grassFieldSize);
+    float2 worldUv = ((output.position.xz + grassFieldSize / 2) / grassFieldSize) - float2(0, grassPos / grassFieldSize);
+
     float heightMap = 1 - Texture.SampleLevel(TextureSampler, worldUv, 0).r;
     float height = lerp(.3, 1, randomVal * output.color.r) * input.uv.y;
     height = lerp(height, 0, heightMap);

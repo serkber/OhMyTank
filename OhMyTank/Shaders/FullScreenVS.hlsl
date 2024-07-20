@@ -1,8 +1,3 @@
-cbuffer model : register(b0)
-{
-    matrix modelMatrix;
-};
-
 struct vsoutput {
     float4 position : SV_POSITION;
     float3 normal : NORMAL;
@@ -21,9 +16,10 @@ vsoutput vsmain(vsinput input)
 {
 	vsoutput output;
 	
-    output.position = mul(input.position, modelMatrix);
+    output.position = input.position * float4(2, 2, 0, 1);
     output.normal = input.normal;
-    output.uv = input.uv;
+    output.uv.x = input.uv.x;
+    output.uv.y = -input.uv.y;
     output.color = input.color;
 
     return output;

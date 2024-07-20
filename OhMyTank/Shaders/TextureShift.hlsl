@@ -10,5 +10,5 @@ struct vsoutput {
 
 float4 psmain(vsoutput input) : SV_TARGET
 {
-    return Texture.Sample(TextureSampler, input.uv);
+    return Texture.Sample(TextureSampler, input.uv + float2(0, 0.1));
 }

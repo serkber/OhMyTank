@@ -1,4 +1,4 @@
-cbuffer cbChangesEveryFrame : register(b0)
+cbuffer model : register(b0)
 {
     matrix modelMatrix;
 };

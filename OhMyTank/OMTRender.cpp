@@ -23,9 +23,13 @@ OMTRender::OMTRender()
     m_pProjCB = nullptr;
     m_pModelCB = nullptr;
     m_pDataCB = nullptr;
-    m_pRenderTexture = nullptr;
-    m_pRenderTextureResource = nullptr;
-    m_pRenderTextureTargetView = nullptr;
+    m_pTextureShiftPS = nullptr;
+    m_pRenderTexture1 = nullptr;
+    m_pRenderTexture1Resource = nullptr;
+    m_pRenderTexture1TargetView = nullptr;
+    m_pRenderTexture2 = nullptr;
+    m_pRenderTexture2TargetView = nullptr;
+    m_pRenderTexture2Resource = nullptr;
     m_pTextureDebugVS = nullptr;
     m_pRenderTextureVS = nullptr;
     m_pRenderTexturePS = nullptr;
@@ -34,31 +38,17 @@ OMTRender::OMTRender()
     m_pMultiplyBlendState = nullptr;
     m_pVertexBufferGrassField = nullptr;
     m_pIndexBufferGrassField = nullptr;
-    m_viewMatrix = DirectX::XMMatrixIdentity();
-    m_viewMatrix = XMMatrixInverse(nullptr, m_viewMatrix);
-    m_projMatrix = DirectX::XMMatrixIdentity();
+    m_pFullScreenVS = nullptr;
+    
+    ::ZeroMemory(&m_data, sizeof(DataCB));
 }
 
 OMTRender::~OMTRender()
 {
 }
 
-void OMTRender::CreateCameraMatrix()
-{
-    m_viewMatrix = DirectX::XMMatrixRotationX(OMTGame::m_pGameInstance->m_camRotY);
-    m_viewMatrix *= DirectX::XMMatrixRotationY(OMTGame::m_pGameInstance->m_camRotX);
-    m_viewMatrix *= DirectX::XMMatrixTranslationFromVector(OMTGame::m_pGameInstance->m_camPos);
-    
-    m_viewMatrix = XMMatrixInverse(nullptr, m_viewMatrix);
-    
-    m_projMatrix = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)OMTGame::m_pGameInstance->m_windSize.x / OMTGame::m_pGameInstance->m_windSize.y, 0.05f, 100.0f);
-    
-    m_viewMatrix = DirectX::XMMatrixTranspose(m_viewMatrix);
-    m_projMatrix = DirectX::XMMatrixTranspose(m_projMatrix);
-}
-
 #define RENDER_TEXTURE_SIZE 128
-bool OMTRender::SetupRenderTexture()
+bool OMTRender::SetupRenderTexture(ID3D11Texture2D** renderTexture, ID3D11ShaderResourceView** resourceView, ID3D11RenderTargetView** renderTarget)
 {
     D3D11_TEXTURE2D_DESC desc;
     desc.ArraySize = 1;
@@ -72,20 +62,20 @@ bool OMTRender::SetupRenderTexture()
     desc.Usage = D3D11_USAGE_DEFAULT;
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
-    HRESULT hr = OMTGame::m_pGameInstance->m_pD3DDevice->CreateTexture2D(&desc, nullptr, &m_pRenderTexture);
+    HRESULT hr = OMTGame::m_pGameInstance->m_pD3DDevice->CreateTexture2D(&desc, nullptr, renderTexture);
     if (FAILED(hr)) {
         ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, L"Failed to create destination texture.", L"Error", MB_OK);
         return false;
     }
 
-    hr = OMTGame::m_pGameInstance->m_pD3DDevice->CreateShaderResourceView(m_pRenderTexture, nullptr, &m_pRenderTextureResource);
+    hr = OMTGame::m_pGameInstance->m_pD3DDevice->CreateShaderResourceView(*renderTexture, nullptr, resourceView);
     if (FAILED(hr)) {
         ::MessageBox(OMTGame::m_pGameInstance->m_hWnd, L"Failed to create Shader Resource View from destination texture.", L"Error", MB_OK);
         return false;
     }
 
     // Create the render target view
-    hr = OMTGame::m_pGameInstance->m_pD3DDevice->CreateRenderTargetView(m_pRenderTexture, nullptr, &m_pRenderTextureTargetView);
+    hr = OMTGame::m_pGameInstance->m_pD3DDevice->CreateRenderTargetView(*renderTexture, nullptr, renderTarget);
     // Check render target view
     if (FAILED(hr)) {
         MessageBox(OMTGame::m_pGameInstance->m_hWnd, Utils::GetMessageFromHr(hr), TEXT("Create render target ERROR"), MB_OK);
@@ -93,7 +83,7 @@ bool OMTRender::SetupRenderTexture()
     }
     
     float bgColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f }; 
-    OMTGame::m_pGameInstance->m_pD3DContext->ClearRenderTargetView(m_pRenderTextureTargetView, bgColor);
+    OMTGame::m_pGameInstance->m_pD3DContext->ClearRenderTargetView(*renderTarget, bgColor);
     
     return true;
 }
@@ -142,6 +132,14 @@ bool OMTRender::LoadGraphicContent()
     {
         return false;
     }
+    if(!m_assetsHelper.LoadShader<ID3D11VertexShader>(L"Shaders/FullScreenVS.hlsl", &pShaderBlob, &m_pFullScreenVS))
+    {
+        return false;
+    }
+    if(!m_assetsHelper.LoadShader<ID3D11PixelShader>(L"Shaders/TextureShift.hlsl", &pShaderBlob, &m_pTextureShiftPS))
+    {
+        return false;
+    }
 
     pShaderBlob->Release();
     pShaderBlob = nullptr;
@@ -176,7 +174,11 @@ bool OMTRender::LoadGraphicContent()
         return false;
     }
     
-    if (!SetupRenderTexture())
+    if (!SetupRenderTexture(&m_pRenderTexture1, &m_pRenderTexture1Resource, &m_pRenderTexture1TargetView))
+    {
+        return false;
+    }
+    if (!SetupRenderTexture(&m_pRenderTexture2, &m_pRenderTexture2Resource, &m_pRenderTexture2TargetView))
     {
         return false;
     }
@@ -201,9 +203,12 @@ bool OMTRender::LoadGraphicContent()
     m_resources.push_back((ID3D11Resource**)&m_pProjCB);
     m_resources.push_back((ID3D11Resource**)&m_pModelCB);
     m_resources.push_back((ID3D11Resource**)&m_pDataCB);
-    m_resources.push_back((ID3D11Resource**)&m_pRenderTextureResource);
-    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture);
-    m_resources.push_back((ID3D11Resource**)&m_pRenderTextureTargetView);
+    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture1Resource);
+    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture1);
+    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture1TargetView);
+    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture2Resource);
+    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture2);
+    m_resources.push_back((ID3D11Resource**)&m_pRenderTexture2TargetView);
     m_resources.push_back((ID3D11Resource**)&m_pTextureDebugVS);
     m_resources.push_back((ID3D11Resource**)&m_pRenderTexturePS);
     m_resources.push_back((ID3D11Resource**)&m_pRenderTextureVS);
@@ -211,7 +216,9 @@ bool OMTRender::LoadGraphicContent()
     m_resources.push_back((ID3D11Resource**)&m_pGrassFieldPS);
     m_resources.push_back((ID3D11Resource**)&m_pMultiplyBlendState);
     m_resources.push_back((ID3D11Resource**)&m_pVertexBufferGrassField);
-    m_resources.push_back((ID3D11Resource**)&m_pIndexBufferGrassField );
+    m_resources.push_back((ID3D11Resource**)&m_pIndexBufferGrassField);
+    m_resources.push_back((ID3D11Resource**)&m_pTextureShiftPS);
+    m_resources.push_back((ID3D11Resource**)&m_pFullScreenVS);
 
     return true;
 }
@@ -256,6 +263,7 @@ bool OMTRender::CreateConstantBuffers()
     OMTGame::m_pGameInstance->m_pD3DContext->VSSetConstantBuffers(1, 1, &m_pViewCB);
     OMTGame::m_pGameInstance->m_pD3DContext->VSSetConstantBuffers(2, 1, &m_pProjCB);
     OMTGame::m_pGameInstance->m_pD3DContext->VSSetConstantBuffers(3, 1, &m_pDataCB);
+    OMTGame::m_pGameInstance->m_pD3DContext->PSSetConstantBuffers(0, 1, &m_pDataCB);
     
     return true;
 }
@@ -318,9 +326,14 @@ void OMTRender::SetRenderViewport(float width, float height)
     OMTGame::m_pGameInstance->m_pD3DContext->RSSetViewports(1, &viewPort);
 }
 
-#define GRASS_FIELD_SIZE 100
+void OMTRender::CreateDebugTextureMatrix()
+{
+    m_debugTextureMatrix = DirectX::XMMatrixScaling(0.4, 0.4, 0.4);
+    m_debugTextureMatrix *= DirectX::XMMatrixTranslation(0.7, 0.7, 0);
+}
 
-void OMTRender::RenderGrass()
+
+void OMTRender::RenderGrass(float grassPos, ID3D11ShaderResourceView** grassTexture)
 {
     UINT stride = sizeof(BasicVertex);
     UINT offset = 0;
@@ -331,85 +344,128 @@ void OMTRender::RenderGrass()
     context->PSSetShader(m_pGrassFieldPS, nullptr, 0);
     context->IASetVertexBuffers(0, 1, &m_pVertexBufferGrassField, &stride, &offset);
     context->IASetIndexBuffer(m_pIndexBufferGrassField, DXGI_FORMAT_R16_UINT, 0);
-    context->VSSetShaderResources(0, 1, &m_pRenderTextureResource);
+    context->VSSetShaderResources(0, 1, grassTexture);
 
-    float grassOffset = GRASS_FIELD_SIZE / 2 - 0.5;
+    m_data.grassPos = grassPos;
+    context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
+    
     for (int x = 0; x < GRASS_FIELD_SIZE; ++x)
     {
-        for (int y = 0; y < GRASS_FIELD_SIZE; ++y)
+        for (int y = grassPos; y < GRASS_FIELD_SIZE + grassPos ; ++y)
         {    
-            auto grassMatrix = DirectX::XMMatrixScaling(.1, .1, .1);
-            grassMatrix *= DirectX::XMMatrixTranslation(x - grassOffset, 0 ,y - grassOffset);
-            grassMatrix = DirectX::XMMatrixTranspose(grassMatrix);
-            context->UpdateSubresource(m_pModelCB, 0, nullptr, &grassMatrix, 0, 0);
+            auto grassPatch = DirectX::XMMatrixScaling(.1, .1, .1);
+            grassPatch *= DirectX::XMMatrixTranslation(x - GRASS_OFFSET, 0 , y - GRASS_OFFSET);
+            
+            grassPatch = DirectX::XMMatrixTranspose(grassPatch);
+            context->UpdateSubresource(m_pModelCB, 0, nullptr, &grassPatch, 0, 0);
     
             context->DrawIndexed(m_grassFieldModel.indexCount, 0, 0);
         }
     }
 }
 
+void OMTRender::RenderGrassTexture(ID3D11RenderTargetView** renderTarget, matrix grassMatrix, bool isCurrentGrass)
+{
+    auto context = OMTGame::m_pGameInstance->m_pD3DContext;
+    UINT stride = sizeof(BasicVertex);
+    UINT offset = 0;
+    context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
+    SetRenderViewport(RENDER_TEXTURE_SIZE, RENDER_TEXTURE_SIZE);
+    context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
+    context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
+    float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    context->OMSetBlendState(m_pMultiplyBlendState, blendFactor, 0xFFFFFFFF);
+    context->OMSetRenderTargets(1, renderTarget, nullptr);
+    context->VSSetShader(m_pRenderTextureVS, nullptr, 0);
+    context->PSSetShader(m_pRenderTexturePS, nullptr, 0);
+
+    if(OMTGame::m_pGameInstance->m_isPainting)
+    {
+        // Mouse painting
+        auto inverseDebugTextureMatrix = DirectX::XMMatrixInverse(nullptr, m_debugTextureMatrix);
+        auto brushPos = DirectX::XMVector2Transform(
+            DirectX::XMVectorSet(OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x, OMTGame::m_pGameInstance->m_input.m_mousePosNorm.y, 0, 0),
+            inverseDebugTextureMatrix
+        );
+            
+        auto brushMatrix = DirectX::XMMatrixScaling(0.2, 0.2, 0.2);
+        brushMatrix *= DirectX::XMMatrixTranslation(brushPos.m128_f32[0] * 2, -brushPos.m128_f32[1] * 2, 0);            
+        brushMatrix = XMMatrixTranspose(brushMatrix);
+        context->UpdateSubresource(m_pModelCB, 0, nullptr, &brushMatrix, 0, 0);
+        
+        m_data.square = 0;
+        context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
+        context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+    }
+        
+    // tankPainting
+    auto inverseGrassMatrix = DirectX::XMMatrixInverse(nullptr, grassMatrix);
+    inverseGrassMatrix *= DirectX::XMMatrixScaling(.1, .1, .1);
+    auto brushPos = DirectX::XMVector3Transform(OMTGame::m_pGameInstance->m_tankPos, inverseGrassMatrix);
+
+    if(isCurrentGrass && brushPos.m128_f32[2] > 1.25)
+    {
+        float bgColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f }; 
+        if(m_currentGrass == 0)
+        {
+            m_currentGrass = 1;
+            OMTGame::m_pGameInstance->m_grass1Pos += 40;
+            context->ClearRenderTargetView(m_pRenderTexture1TargetView, bgColor);
+
+        }
+        else
+        {
+            m_currentGrass = 0;
+            OMTGame::m_pGameInstance->m_grass2Pos += 40;
+            context->ClearRenderTargetView(m_pRenderTexture2TargetView, bgColor);
+        }
+    }
+    
+    auto brushMatrix = DirectX::XMMatrixScaling(0.2, 0.2, 0.2);
+    brushMatrix *= DirectX::XMMatrixRotationZ(OMTGame::m_pGameInstance->m_tankRot);
+    brushMatrix *= DirectX::XMMatrixTranslation(brushPos.m128_f32[0], -brushPos.m128_f32[2], 0);        
+    brushMatrix = XMMatrixTranspose(brushMatrix);
+    context->UpdateSubresource(m_pModelCB, 0, nullptr, &brushMatrix, 0, 0);
+        
+    m_data.square = 1;
+    context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
+        
+    context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+}
+
 void OMTRender::Render()
 {
-    CreateCameraMatrix();
+    UINT stride = sizeof(BasicVertex);
+    UINT offset = 0;
+    
+    CreateDebugTextureMatrix();
     
     auto context = OMTGame::m_pGameInstance->m_pD3DContext;
     // Check if D3D is ready
     if (context == nullptr)
         return;
 
-    DataCB cb;
-    ::ZeroMemory(&cb, sizeof(DataCB));
-    cb.elapsedTime = OMTGame::m_pGameInstance->m_elapsedTime;
-    cb.mouseX = OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x;
-    cb.grassfieldSize = GRASS_FIELD_SIZE;
-    context->UpdateSubresource(m_pDataCB, 0, nullptr, &cb, 0, 0);
+    m_data.elapsedTime = OMTGame::m_pGameInstance->m_elapsedTime;
+    m_data.mouseX = OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x;
+    m_data.grassfieldSize = GRASS_FIELD_SIZE;
+    context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
     
     // Set stuff
     context->PSSetSamplers(0, 1, &m_pTextureSampler);
     context->IASetInputLayout(m_pBasicInputLayout);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    UINT stride = sizeof(BasicVertex);
-    UINT offset = 0;
-
     //Render Texture drawcall
     //////////////////////////////////
-    auto debugTexMatrix = DirectX::XMMatrixScaling(0.4, 0.4, 0.4);
-    debugTexMatrix *= DirectX::XMMatrixTranslation(0.7, 0.7, 0);
-    auto inversDebugTexMatrix = XMMatrixInverse(nullptr, debugTexMatrix);
-
-    if(OMTGame::m_pGameInstance->m_isPainting)
+    if(renderTextureTimer < 0.0333333)
     {
-        if(renderTextureTimer < 0.0166666)
-        {
-            renderTextureTimer += OMTGame::m_pGameInstance->m_deltaTime;
-        }
-        else
-        {
-            renderTextureTimer = 0;
-        
-            float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-            context->OMSetBlendState(m_pMultiplyBlendState, blendFactor, 0xFFFFFFFF);
-            //context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
-            context->OMSetRenderTargets(1, &m_pRenderTextureTargetView, nullptr);
-            context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
-            SetRenderViewport(RENDER_TEXTURE_SIZE, RENDER_TEXTURE_SIZE);
-            context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
-            context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
-
-            auto relativeMouse = DirectX::XMVector2Transform(
-                DirectX::XMVectorSet(OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x, OMTGame::m_pGameInstance->m_input.m_mousePosNorm.y, 0, 0),
-                inversDebugTexMatrix
-                );
-        
-            auto brushMatrix = DirectX::XMMatrixScaling(0.2, 0.2, 0.2);
-            brushMatrix *= DirectX::XMMatrixTranslation(relativeMouse.m128_f32[0] * 2, -relativeMouse.m128_f32[1] * 2, 0);
-            brushMatrix = XMMatrixTranspose(brushMatrix);
-            context->UpdateSubresource(m_pModelCB, 0, nullptr, &brushMatrix, 0, 0);
-            context->VSSetShader(m_pRenderTextureVS, nullptr, 0);
-            context->PSSetShader(m_pRenderTexturePS, nullptr, 0);
-            context->DrawIndexed(m_quadModel.indexCount, 0, 0);
-        }
+        renderTextureTimer += OMTGame::m_pGameInstance->m_deltaTime;
+    }
+    else
+    {
+        renderTextureTimer = 0;
+        RenderGrassTexture(&m_pRenderTexture1TargetView, OMTGame::m_pGameInstance->m_grass1Matrix, m_currentGrass == 0);
+        RenderGrassTexture(&m_pRenderTexture2TargetView, OMTGame::m_pGameInstance->m_grass2Matrix, m_currentGrass == 1);
     }
 
     // World painting
@@ -422,9 +478,14 @@ void OMTRender::Render()
     SetRenderViewport(OMTGame::m_pGameInstance->m_windSize.x,OMTGame::m_pGameInstance->m_windSize.y);
     context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
     context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilState, 0);
+    
     //Update camera buffers
-    context->UpdateSubresource(m_pViewCB, 0, nullptr, &m_viewMatrix, 0, 0);
-    context->UpdateSubresource(m_pProjCB, 0, nullptr, &m_projMatrix, 0, 0);
+    auto viewMatrix = DirectX::XMMatrixInverse(nullptr, OMTGame::m_pGameInstance->m_cameraMatrix);
+    viewMatrix = DirectX::XMMatrixTranspose(viewMatrix);    
+    auto projMatrix = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)OMTGame::m_pGameInstance->m_windSize.x / OMTGame::m_pGameInstance->m_windSize.y, 0.05f, 100.0f);
+    projMatrix = DirectX::XMMatrixTranspose(projMatrix);
+    context->UpdateSubresource(m_pViewCB, 0, nullptr, &viewMatrix, 0, 0);
+    context->UpdateSubresource(m_pProjCB, 0, nullptr, &projMatrix, 0, 0);
     
     //Tank drawcall
     ///////////////////////////    
@@ -432,15 +493,15 @@ void OMTRender::Render()
     context->PSSetShader(m_pTankPS, nullptr, 0);
     context->IASetVertexBuffers(0, 1, &m_pVertexBufferTank, &stride, &offset);
     context->IASetIndexBuffer(m_pIndexBufferTank, DXGI_FORMAT_R16_UINT, 0);
-
-    auto transposedTankMatrix = XMMatrixTranspose(OMTGame::m_pGameInstance->m_tankMatrix);
     
+    auto transposedTankMatrix = XMMatrixTranspose(OMTGame::m_pGameInstance->m_tankMatrix);
     context->UpdateSubresource(m_pModelCB, 0, nullptr, &transposedTankMatrix, 0, 0);
     
     context->PSSetShaderResources(0, 1, &m_pTankMapResource);
     context->DrawIndexed(m_tankModel.indexCount, 0, 0);
 
-    RenderGrass();
+    RenderGrass(OMTGame::m_pGameInstance->m_grass1Pos, &m_pRenderTexture1Resource);
+    RenderGrass(OMTGame::m_pGameInstance->m_grass2Pos, &m_pRenderTexture2Resource);
 
     //Render Texture debug drawcall
     //////////////////////////////////
@@ -452,10 +513,11 @@ void OMTRender::Render()
     context->PSSetShader(m_pTextureDebugPS, nullptr, 0);
     context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
     context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
-    debugTexMatrix = XMMatrixTranspose(debugTexMatrix);
-    context->UpdateSubresource(m_pModelCB, 0, nullptr, &debugTexMatrix, 0, 0);
     
-    context->PSSetShaderResources(0, 1, &m_pRenderTextureResource);
+    m_debugTextureMatrix = XMMatrixTranspose(m_debugTextureMatrix);
+    context->UpdateSubresource(m_pModelCB, 0, nullptr, &m_debugTextureMatrix, 0, 0);
+    
+    context->PSSetShaderResources(0, 1, &m_pRenderTexture2Resource);
     context->DrawIndexed(m_quadModel.indexCount, 0, 0);
 
     // Present back buffer to display

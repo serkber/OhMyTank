@@ -1,14 +1,14 @@
-cbuffer cbChangesEveryFrame : register(b0)
+cbuffer model : register(b0)
 {
     matrix modelMatrix;
 };
 
-cbuffer cbNeverChanges : register(b1)
+cbuffer view : register(b1)
 {
     matrix viewMatrix;
 };
 
-cbuffer cbChangeOnResize : register(b2)
+cbuffer projection : register(b2)
 {
     matrix projMatrix;
 };

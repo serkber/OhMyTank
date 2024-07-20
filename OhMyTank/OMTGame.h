@@ -3,7 +3,6 @@
 #include "Dx11Base.h"
 #include "OMTInput.h"
 #include "OMTRender.h"
-#include "Typedefs.h"
 
 class OMTGame : public Dx11Base
 {
@@ -22,6 +21,9 @@ public:
     virtual void UnloadContent();
     virtual void Update();
     virtual void Render();
+    void CreateTankMatrix();
+    void CreateGrassMatrices();
+    void CreateCameraMatrix();
 
     void RotateCamera(float horizontal, float vertical);
     void PanCamera(float horizontal, float vertical);
@@ -49,9 +51,16 @@ private:
     DirectX::AudioListener m_listener;
     DirectX::AudioEmitter  m_emitter;
 
-    float m_tankRot = 0;
-    matrix m_tankMatrix;
+    matrix m_grass1Matrix;
+    float m_grass1Pos;
+    matrix m_grass2Matrix;
+    float m_grass2Pos;
 
+    matrix m_tankMatrix;
+    DirectX::XMVECTOR m_tankPos;
+    float m_tankRot = 0;
+    
+    matrix m_cameraMatrix;
     float m_camRotX, m_camRotY;
     DirectX::XMVECTOR m_camPos;
 };

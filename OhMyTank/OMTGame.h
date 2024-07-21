@@ -4,8 +4,8 @@
 #include "OMTInput.h"
 #include "OMTRender.h"
 
-#define GRASS_FIELD_SIZE 70
-#define GRASS_OFFSET GRASS_FIELD_SIZE / 2 - 0.5
+#define GRASS_FIELD_ASPECT 6.0f
+#define GRASS_FIELD_SIZE 55
 
 class OMTGame : public Dx11Base
 {
@@ -66,4 +66,9 @@ private:
     matrix m_cameraMatrix;
     float m_camRotX, m_camRotY;
     DirectX::XMVECTOR m_camPos;
+    float m_camOffsetX = 0;
+    float m_camOffsetY = 10;
+    float m_camOffsetZ = -10.5;
+
+    bool m_isDebugEnabled = false;
 };

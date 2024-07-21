@@ -1,8 +1,3 @@
-cbuffer model : register(b0)
-{
-    matrix modelMatrix;
-};
-
 cbuffer view : register(b1)
 {
     matrix viewMatrix;
@@ -20,6 +15,9 @@ cbuffer data : register(b3)
     float square;
     float grassFieldSize;
     float grassPos;
+    float grassAspect;
+    float camPos;
+    float mouseY;
 };
 
 Texture2D Texture : register(t0);
@@ -58,6 +56,10 @@ float gnoise(float2 n) {
     return lerp( x, y, f.y );
 };
 
+float inverseLerp(float from, float to, float val){
+    return (val - from) / (to - from);
+}
+
 vsoutput vsmain(vsinput input)
 {
 	vsoutput output = (vsoutput)0;
@@ -74,10 +76,13 @@ vsoutput vsmain(vsinput input)
 // Tip height
     output.color = gnoise(bladePos / 2);
 
-    float2 worldUv = ((output.position.xz + grassFieldSize / 2) / grassFieldSize) - float2(0, grassPos / grassFieldSize);
+    float2 grassFieldDimensions = float2(grassFieldSize, grassFieldSize * grassAspect);
+    float2 worldUv = output.position.xz + grassFieldDimensions / 2;
+    worldUv /= grassFieldDimensions;
+    worldUv -= float2(0, grassPos / (grassFieldSize * grassAspect));
 
     float heightMap = 1 - Texture.SampleLevel(TextureSampler, worldUv, 0).r;
-    float height = lerp(.3, 1, randomVal * output.color.r) * input.uv.y;
+    float height = lerp(.5, 1.5, randomVal * output.color.r) * input.uv.y;
     height = lerp(height, 0, heightMap);
     output.position.y = height;
 
@@ -89,12 +94,20 @@ vsoutput vsmain(vsinput input)
     swing += sin(elapsedTime * 3.7 + randomVal);
     output.position.x += (swing * 0.3 + 0.5) * input.uv.y * lerp(.3, .45, randomVal) * height;
 
-    output.position = mul(output.position, viewMatrix);
-    output.position = mul(output.position, projMatrix);
 
     input.normal = normalize(input.normal);
-    output.normal = mul(input.normal, (float3x3)modelMatrix);
+    output.normal = input.normal;
     output.normal = normalize(output.normal);
+
+// Curve
+    float val = (output.position.z - camPos);
+    val = inverseLerp(5, 300, val);
+    val *= val;
+    output.position.y += val * 60;
+
+// View proj transformation
+    output.position = mul(output.position, viewMatrix);
+    output.position = mul(output.position, projMatrix);
 
     output.uv = input.uv;
 

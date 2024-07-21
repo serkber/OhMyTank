@@ -17,6 +17,7 @@ Dx11Base::Dx11Base()
     m_pDepthStencilState = nullptr;
     m_audEngine = nullptr;
     Dx11Base::m_instance = this;
+    m_pBackBuffer = nullptr;
 
     m_time = std::chrono::steady_clock::now();
 }
@@ -102,15 +103,14 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
     }
 
     // Get the back buffer from the swapchain
-    ID3D11Texture2D *pBackBuffer;
-    hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+    hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&m_pBackBuffer);
     if (FAILED(hr)) {
         MessageBox(hWnd, TEXT("Unable to get back buffer"), TEXT("ERROR"), MB_OK);
         return false;
     }
 
     // Create the render target view
-    hr = m_pD3DDevice->CreateRenderTargetView(pBackBuffer, nullptr, &m_pD3DRenderTargetView);
+    hr = m_pD3DDevice->CreateRenderTargetView(m_pBackBuffer, nullptr, &m_pD3DRenderTargetView);
 
     // Check render target view
     if (FAILED(hr)) {
@@ -119,8 +119,8 @@ bool Dx11Base::Initialize(HWND hWnd, HINSTANCE hInst)
     }
     
     // Release the back buffer
-    if (pBackBuffer != nullptr)
-        pBackBuffer->Release();
+    if (m_pBackBuffer != nullptr)
+        m_pBackBuffer->Release();
 
     // Depth test stuff
     CreateDepthStencilResources();
@@ -167,7 +167,7 @@ void Dx11Base::PreUpdate()
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(current - m_time).count() / (double)1000000;
     m_elapsedTime += m_deltaTime;
 
-    std::cout << 1 / m_deltaTime << '\t' << " FPS" << '\n';
+    // std::cout << 1 / m_deltaTime << '\t' << " FPS" << '\n';
     
     m_time = current;
 }

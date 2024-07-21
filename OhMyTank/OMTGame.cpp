@@ -11,12 +11,12 @@ OMTGame::OMTGame()
     m_cameraMatrix = DirectX::XMMatrixIdentity();    
     m_grass1Matrix = DirectX::XMMatrixIdentity();
     m_grass2Matrix = DirectX::XMMatrixIdentity();
-    m_tankPos = DirectX::XMVectorSet(0, 0, -7, 0); 
+    m_tankPos = DirectX::XMVectorSet(0, 0, 0, 0); 
     m_camPos = DirectX::XMVectorSet(0, 6, -15, 0);
-    m_camRotY = 0.349066;
+    m_camRotY = 0.35;
     m_camRotX = 0;
     m_grass1Pos = 0;
-    m_grass2Pos = GRASS_FIELD_SIZE;
+    m_grass2Pos = GRASS_FIELD_SIZE * GRASS_FIELD_ASPECT;
 
     m_pGameInstance = this;
 }
@@ -96,14 +96,31 @@ void OMTGame::Update()
         m_input.HandleKeyboard();
     }
 
-    m_tankRot = sin(m_elapsedTime) * 0.2;
-
+    if(!m_input.m_isControllingCamera)
+    {
+        m_tankRot = m_input.m_isAPressed ? m_tankRot -= m_deltaTime * 3 : m_tankRot;
+        m_tankRot = m_input.m_isDPressed ? m_tankRot += m_deltaTime * 3 : m_tankRot;
+    }
+    
+    //m_tankRot = sin(m_elapsedTime) * 0.2;
+    float speed = 0;
+    if(m_input.m_isWPressed && !m_input.m_isControllingCamera)
+    {
+        speed += 30;
+    }
+    if(m_input.m_isSPressed && !m_input.m_isControllingCamera)
+    {
+        speed -= 30;
+    }
+    
     auto tankDelta = DirectX::XMVectorSet(sin(m_tankRot), 0, cos(m_tankRot), 0);
-    tankDelta = DirectX::XMVectorScale(tankDelta, m_deltaTime * 4 * (cos(m_elapsedTime) + 2));
+    tankDelta = DirectX::XMVectorScale(tankDelta, m_deltaTime * speed);
     
     m_tankPos = DirectX::XMVectorAdd(m_tankPos ,tankDelta);
     
-    m_camPos = DirectX::XMVectorAdd(m_tankPos, DirectX::XMVectorSet(0, 6, -7, 0));
+    m_camPos = DirectX::XMVectorAdd(m_tankPos, DirectX::XMVectorSet(m_camOffsetX, m_camOffsetY, m_camOffsetZ, 0));
+
+    // std::cout << m_camPos.m128_f32[1] << " " << m_camPos.m128_f32[2] << " " << m_camRotY << std::endl;
 
     CreateTankMatrix();
     CreateGrassMatrices();
@@ -127,6 +144,7 @@ void OMTGame::CreateGrassMatrices()
 {
     m_grass1Matrix = DirectX::XMMatrixTranslation(0, 0, m_grass1Pos);
     m_grass2Matrix = DirectX::XMMatrixTranslation(0, 0, m_grass2Pos);
+    //std::cout << m_grass2Pos << std::endl;
 }
 
 void OMTGame::CreateCameraMatrix()
@@ -144,19 +162,25 @@ void OMTGame::RotateCamera(float horizontal, float vertical)
 
 void OMTGame::PanCamera(float horizontal, float vertical)
 {
-    auto up = DirectX::XMVectorScale(m_cameraMatrix.r[1], vertical * 2);
-    auto right = DirectX::XMVectorScale(m_cameraMatrix.r[0], -horizontal * 2);
-    auto delta = DirectX::XMVectorAdd(up, right);
-    m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
+    // Free cam
+    // auto up = DirectX::XMVectorScale(m_cameraMatrix.r[1], vertical * 10);
+    // auto right = DirectX::XMVectorScale(m_cameraMatrix.r[0], -horizontal * 10);
+    // auto delta = DirectX::XMVectorAdd(up, right);
+    // m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
+    m_camOffsetX -= horizontal * 10;
+    m_camOffsetY += vertical * 10;
 }
 
 void OMTGame::MoveCamera(float forward, float right)
 {
-    auto forwardVec = DirectX::XMVectorScale(m_cameraMatrix.r[2], forward * m_deltaTime);
-    auto rightVec = DirectX::XMVectorScale(m_cameraMatrix.r[0], right * m_deltaTime);
-    auto delta = DirectX::XMVectorAdd(forwardVec, rightVec);
-    
-    m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
+    // Free cam
+    // auto forwardVec = DirectX::XMVectorScale(m_cameraMatrix.r[2], forward * m_deltaTime * 10);
+    // auto rightVec = DirectX::XMVectorScale(m_cameraMatrix.r[0], right * m_deltaTime * 10);
+    // auto delta = DirectX::XMVectorAdd(forwardVec, rightVec);
+    //
+    // m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
+
+    m_camOffsetZ += forward * 10 * m_deltaTime;
 }
 
 void OMTGame::SetFocusState(bool state)

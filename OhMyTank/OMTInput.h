@@ -27,8 +27,6 @@ public:
     bool m_isSPressed = false;
     bool m_isDPressed = false;
     
-    bool m_shouldReinitialize;
-    
     bool m_isControllingCamera = false;
     bool m_isCursorShown = true;
 

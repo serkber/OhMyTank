@@ -41,6 +41,7 @@ public:
     ID3D11DeviceContext* m_pD3DContext;
     ID3D11RenderTargetView*	m_pD3DRenderTargetView;
     IDXGISwapChain* m_pSwapChain;
+    ID3D11Texture2D* m_pBackBuffer;
 
     ID3D11Texture2D* m_pDepthTexture;
     ID3D11DepthStencilState* m_pDepthStencilState;

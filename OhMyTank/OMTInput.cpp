@@ -228,6 +228,6 @@ void OMTInput::HandleKeyboard()
 
     if(keyboardData[DIK_R] & 0x80)
     {
-        m_shouldReinitialize = true;
+        OMTGame::m_pGameInstance->m_isDebugEnabled = !OMTGame::m_pGameInstance->m_isDebugEnabled;
     }
 }

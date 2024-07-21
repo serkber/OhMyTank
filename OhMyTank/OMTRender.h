@@ -13,9 +13,9 @@ class OMTRender
         float square;
         float grassfieldSize;
         float grassPos;
-        float padding1;
-        float padding2;
-        float padding3;
+        float grassAspect;
+        float camPos;
+        float mouseY;
     };
     
 friend class OMTGame;
@@ -24,6 +24,8 @@ public:
     OMTRender();
     ~OMTRender();
     bool SetupRenderTexture(ID3D11Texture2D** renderTexture, ID3D11ShaderResourceView** resourceView, ID3D11RenderTargetView** renderTarget);
+    void InitGrass(ID3D11RenderTargetView** renderTarget);
+    bool CreateTextureAndResource(UINT width, UINT height, ID3D11Texture2D** texture, ID3D11ShaderResourceView** resource);
     bool LoadGraphicContent();
     bool CreateConstantBuffers();
     void CreateBlendingResources();
@@ -38,6 +40,11 @@ public:
     void ReleaseResources();
 
 private:
+    //Post Processing
+    ID3D11Texture2D* m_pPostpoTexture;
+    ID3D11ShaderResourceView* m_pPostpoTextureResource;
+    ID3D11PixelShader* m_pVBlurPS;
+    
     //Common resources
     ID3D11InputLayout* m_pBasicInputLayout;
     ID3D11InputLayout* m_pInstantiableInputLayout;
@@ -67,7 +74,7 @@ private:
     double renderTextureTimer = 0;
     ID3D11VertexShader* m_pRenderTextureVS;
     ID3D11PixelShader* m_pRenderTexturePS;
-    ID3D11PixelShader* m_pTextureShiftPS;
+    ID3D11PixelShader* m_pGrassInitPS;
     ID3D11VertexShader* m_pTextureDebugVS;
     ID3D11PixelShader* m_pTextureDebugPS;
     ID3D11Texture2D* m_pRenderTexture1;

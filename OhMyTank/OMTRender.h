@@ -4,9 +4,6 @@
 #include "FBXImporter.h"
 #include "Typedefs.h"
 
-#define GRASS_FIELD_SIZE 20
-#define GRASS_OFFSET GRASS_FIELD_SIZE / 2 - 0.5
-
 class OMTRender
 {
     struct DataCB
@@ -34,13 +31,16 @@ public:
     void SetRenderViewport(float width, float height);
     void RenderGrass(float grassPos, ID3D11ShaderResourceView** grassTexture);
     void RenderGrassTexture(ID3D11RenderTargetView** renderTarget, matrix grassMatrix, bool isCurrentGrass);
+    void UpdateCameraBuffers(ID3D11DeviceContext* context);
     void CreateDebugTextureMatrix();
+    bool CreateGrassInstancesBuffer();
     void Render();
     void ReleaseResources();
 
 private:
     //Common resources
     ID3D11InputLayout* m_pBasicInputLayout;
+    ID3D11InputLayout* m_pInstantiableInputLayout;
     ID3D11SamplerState* m_pTextureSampler;
     ID3D11BlendState* m_pAlphaBlendState;
     ID3D11BlendState* m_pMultiplyBlendState;
@@ -60,6 +60,8 @@ private:
     ID3D11PixelShader* m_pGrassFieldPS;
     ID3D11Buffer* m_pVertexBufferGrassField;
     ID3D11Buffer* m_pIndexBufferGrassField;
+    ID3D11Buffer* m_pInstancesBufferGrassField;
+    ID3D11Buffer* m_pGrassBuffers[2];
 
     //Render texture stuff
     double renderTextureTimer = 0;
@@ -84,6 +86,9 @@ private:
     FBXImporter::FBXModel m_quadModel;
     ID3D11Buffer* m_pVertexBufferQuad;
     ID3D11Buffer* m_pIndexBufferQuad;
+
+    matrix m_viewMatrix;
+    matrix m_projMatrix;
 
     //CBuffers
     ID3D11Buffer* m_pViewCB;

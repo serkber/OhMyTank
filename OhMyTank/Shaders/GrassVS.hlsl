@@ -37,24 +37,20 @@ struct vsinput {
     float3 normal : NORMAL;
     float2 uv : UV;
     float4 color : COLOR;
+    uint instanceID : SV_InstanceID;
+    matrix iModel : INSTANCE_MODEL;
 };
 
 float random( float2 p )
 {
-    float2 K1 = float2(
-        23.14069263277926, // e^pi (Gelfond's constant)
-         2.665144142690225 // 2^sqrt(2) (Gelfondâ€“Schneider constant)
-    );
-    return frac( cos( dot(p,K1) ) * 12345.6789 );
+    float2 K1 = float2(23.14069263277926, 2.665144142690225);
+    return frac( cos( dot(p,K1) ) * 12345.6789);
 };
 
 float gnoise(float2 n) {
     const float2 d = float2(0.0, 1.0);
     float2  b = floor(n), 
     f = smoothstep(d.xx, d.yy, frac(n));
-
-    //float2 f = frac(n);
-    //f = f*f*(3.0-2.0*f);
 
     float x = lerp(random(b), random(b + d.yx), f.x),
           y = lerp(random(b + d.xy), random(b + d.yy), f.x);
@@ -66,8 +62,8 @@ vsoutput vsmain(vsinput input)
 {
 	vsoutput output = (vsoutput)0;
 	
-    output.position = mul(input.position, modelMatrix);
-    float2 bladePos = float2( modelMatrix._41, modelMatrix._43 ) + input.color.rg;
+    output.position = mul(input.position, input.iModel);
+    float2 bladePos = float2( input.iModel._41, input.iModel._43 ) + input.color.rg;
 
     float randomVal = random(bladePos);
 

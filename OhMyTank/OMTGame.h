@@ -4,6 +4,9 @@
 #include "OMTInput.h"
 #include "OMTRender.h"
 
+#define GRASS_FIELD_SIZE 70
+#define GRASS_OFFSET GRASS_FIELD_SIZE / 2 - 0.5
+
 class OMTGame : public Dx11Base
 {
     friend class OMTRender;

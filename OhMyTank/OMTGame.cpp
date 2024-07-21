@@ -16,7 +16,7 @@ OMTGame::OMTGame()
     m_camRotY = 0.349066;
     m_camRotX = 0;
     m_grass1Pos = 0;
-    m_grass2Pos = 20;
+    m_grass2Pos = GRASS_FIELD_SIZE;
 
     m_pGameInstance = this;
 }
@@ -102,7 +102,7 @@ void OMTGame::Update()
     tankDelta = DirectX::XMVectorScale(tankDelta, m_deltaTime * 4 * (cos(m_elapsedTime) + 2));
     
     m_tankPos = DirectX::XMVectorAdd(m_tankPos ,tankDelta);
-
+    
     m_camPos = DirectX::XMVectorAdd(m_tankPos, DirectX::XMVectorSet(0, 6, -7, 0));
 
     CreateTankMatrix();

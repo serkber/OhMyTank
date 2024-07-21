@@ -154,6 +154,7 @@
     <ClInclude Include="OMTGame.h" />
     <ClInclude Include="OMTInput.h" />
     <ClInclude Include="OMTRender.h" />
+    <ClInclude Include="RenderingData.h" />
     <ClInclude Include="Resources.h" />
     <ClInclude Include="WaveBank.h" />
   </ItemGroup>

@@ -28,6 +28,6 @@ float4 psmain(vsoutput input) : SV_TARGET
     sides += gnoise(input.uv * float2(10, 40)) - 0.5;
     sides = saturate(sides);
     
-    float middle = saturate(gnoise(input.uv * float2(5, 20)) * 2);
+    float middle = 1;//saturate(gnoise(input.uv * float2(5, 20)) * 2);
     return sides * middle;
 }

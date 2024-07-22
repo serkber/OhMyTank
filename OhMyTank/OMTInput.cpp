@@ -230,4 +230,8 @@ void OMTInput::HandleKeyboard()
     {
         OMTGame::m_pGameInstance->m_isDebugEnabled = !OMTGame::m_pGameInstance->m_isDebugEnabled;
     }
+    if(keyboardData[DIK_T] & 0x80)
+    {
+        OMTGame::m_pGameInstance->m_isFXAAEnabled = !OMTGame::m_pGameInstance->m_isFXAAEnabled;
+    }
 }

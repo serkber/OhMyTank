@@ -41,9 +41,13 @@ public:
 
 private:
     //Post Processing
-    ID3D11Texture2D* m_pPostpoTexture;
-    ID3D11ShaderResourceView* m_pPostpoTextureResource;
-    ID3D11PixelShader* m_pVBlurPS;
+    ID3D11Texture2D* m_pPostpoTexture1;
+    ID3D11ShaderResourceView* m_pPostpoTexture1Resource;
+    ID3D11Texture2D* m_pPostpoTexture2;
+    ID3D11ShaderResourceView* m_pPostpoTexture2Resource;
+    ID3D11PixelShader* m_pSilhouettePS;
+    ID3D11PixelShader* m_pBlurPS;
+    ID3D11PixelShader* m_pFXAAPS;
     
     //Common resources
     ID3D11InputLayout* m_pBasicInputLayout;

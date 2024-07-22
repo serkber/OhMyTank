@@ -17,5 +17,6 @@ float4 psmain(vsoutput input) : SV_TARGET
     col = lerp(col, col3, val);
     col *= noise;
     col = lerp(col, float4(0.2, 0.15, 0.05, 1), input.color.a);
+    col.a = input.color.g;
     return col;
 }

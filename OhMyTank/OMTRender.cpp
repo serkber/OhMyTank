@@ -36,14 +36,19 @@ OMTRender::OMTRender()
     m_pRenderTexturePS = nullptr;
     m_pGrassFieldVS = nullptr;
     m_pGrassFieldPS = nullptr;
-    m_pPostpoTexture = nullptr;
-    m_pPostpoTextureResource = nullptr;
+    m_pPostpoTexture1 = nullptr;
+    m_pPostpoTexture1Resource = nullptr;
     m_pMultiplyBlendState = nullptr;
     m_pVertexBufferGrassField = nullptr;
     m_pIndexBufferGrassField = nullptr;
     m_pFullScreenVS = nullptr;
     m_pInstantiableInputLayout = nullptr;
     m_pInstancesBufferGrassField = nullptr;
+    m_pSilhouettePS = nullptr;
+    m_pBlurPS = nullptr;
+    m_pFXAAPS = nullptr;
+    m_pPostpoTexture2 = nullptr;
+    m_pPostpoTexture2Resource = nullptr;
     
     ::ZeroMemory(&m_data, sizeof(DataCB));
 }
@@ -204,7 +209,15 @@ bool OMTRender::LoadGraphicContent()
     {
         return false;
     }
-    if(!m_assetsHelper.LoadShader<ID3D11PixelShader>(L"Shaders/VBlurPS.hlsl", &pShaderBlob, &m_pVBlurPS))
+    if(!m_assetsHelper.LoadShader<ID3D11PixelShader>(L"Shaders/SilhouettePS.hlsl", &pShaderBlob, &m_pSilhouettePS))
+    {
+        return false;
+    }
+    if(!m_assetsHelper.LoadShader<ID3D11PixelShader>(L"Shaders/FXAAPS.hlsl", &pShaderBlob, &m_pFXAAPS))
+    {
+        return false;
+    }
+    if(!m_assetsHelper.LoadShader<ID3D11PixelShader>(L"Shaders/BlurPS.hlsl", &pShaderBlob, &m_pBlurPS))
     {
         return false;
     }
@@ -256,7 +269,11 @@ bool OMTRender::LoadGraphicContent()
         return false;
     }
     
-    if (!CreateTextureAndResource(OMTGame::m_pGameInstance->m_windSize.x, OMTGame::m_pGameInstance->m_windSize.y, &m_pPostpoTexture, &m_pPostpoTextureResource))
+    if (!CreateTextureAndResource(OMTGame::m_pGameInstance->m_windSize.x, OMTGame::m_pGameInstance->m_windSize.y, &m_pPostpoTexture1, &m_pPostpoTexture1Resource))
+    {
+        return false;
+    }    
+    if (!CreateTextureAndResource(OMTGame::m_pGameInstance->m_windSize.x, OMTGame::m_pGameInstance->m_windSize.y, &m_pPostpoTexture2, &m_pPostpoTexture2Resource))
     {
         return false;
     }
@@ -305,8 +322,13 @@ bool OMTRender::LoadGraphicContent()
     m_resources.push_back((ID3D11Resource**)&m_pFullScreenVS);
     m_resources.push_back((ID3D11Resource**)&m_pInstantiableInputLayout);
     m_resources.push_back((ID3D11Resource**)&m_pInstancesBufferGrassField);
-    m_resources.push_back((ID3D11Resource**)&m_pPostpoTextureResource);
-    m_resources.push_back((ID3D11Resource**)&m_pPostpoTexture);
+    m_resources.push_back((ID3D11Resource**)&m_pPostpoTexture1Resource);
+    m_resources.push_back((ID3D11Resource**)&m_pPostpoTexture1);
+    m_resources.push_back((ID3D11Resource**)&m_pSilhouettePS);
+    m_resources.push_back((ID3D11Resource**)&m_pBlurPS);
+    m_resources.push_back((ID3D11Resource**)&m_pFXAAPS);
+    m_resources.push_back((ID3D11Resource**)&m_pPostpoTexture2);
+    m_resources.push_back((ID3D11Resource**)&m_pPostpoTexture2Resource);
 
     return true;
 }
@@ -608,7 +630,7 @@ void OMTRender::Render()
     
     // World painting settings
     /////////////////////////////// 
-    float bgColor[4] = { 0.2f, 0.2f, 0.15f, 1.0f };
+    float bgColor[4] = { 0.2f, 0.2f, 0.15f, 0.0f };
     context->ClearRenderTargetView(OMTGame::m_pGameInstance->m_pD3DRenderTargetView, bgColor);
     context->ClearDepthStencilView(OMTGame::m_pGameInstance->m_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     context->OMSetRenderTargets(1, &OMTGame::m_pGameInstance->m_pD3DRenderTargetView, OMTGame::m_pGameInstance->m_pDepthStencilView);
@@ -622,19 +644,6 @@ void OMTRender::Render()
     context->IASetInputLayout(m_pInstantiableInputLayout);
     RenderGrass(OMTGame::m_pGameInstance->m_grass1Pos, &m_pRenderTexture1Resource);
     RenderGrass(OMTGame::m_pGameInstance->m_grass2Pos, &m_pRenderTexture2Resource);
-    ////////////////////
-
-    // Grass AA
-    /////////////////////
-    context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
-    context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
-    context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
-    context->VSSetShader(m_pFullScreenVS, nullptr, 0);
-    context->PSSetShader(m_pVBlurPS, nullptr, 0);
-    context->CopyResource(m_pPostpoTexture, OMTGame::m_pGameInstance->m_pBackBuffer);
-    context->PSSetShaderResources(0, 1, &m_pPostpoTextureResource);
-    context->DrawIndexed(m_quadModel.indexCount, 0, 0);
-    
     ////////////////////
     
     // Render tank
@@ -652,6 +661,37 @@ void OMTRender::Render()
     context->PSSetShaderResources(0, 1, &m_pTankMapResource);
     context->DrawIndexed(m_tankModel.indexCount, 0, 0);
     //////////////////
+
+    if(OMTGame::m_pGameInstance->m_isFXAAEnabled)
+    {
+        // FXAA
+        /////////////////////
+        context->IASetInputLayout(m_pBasicInputLayout);
+        context->OMSetRenderTargets(1, &OMTGame::m_pGameInstance->m_pD3DRenderTargetView, OMTGame::m_pGameInstance->m_pDepthStencilView);
+        context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
+        context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
+        context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
+        context->VSSetShader(m_pFullScreenVS, nullptr, 0);
+
+        //Silhouette to backBuffer and backBuffer to Texture1
+        context->PSSetShader(m_pSilhouettePS, nullptr, 0);
+        context->CopyResource(m_pPostpoTexture1, OMTGame::m_pGameInstance->m_pBackBuffer);
+        context->PSSetShaderResources(0, 1, &m_pPostpoTexture1Resource);
+        context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+
+        //Silhouette to Texture1 and blurred Silhouette to backBuffer
+        context->CopyResource(m_pPostpoTexture2, OMTGame::m_pGameInstance->m_pBackBuffer);
+        context->PSSetShaderResources(0, 1, &m_pPostpoTexture2Resource);
+        context->PSSetShader(m_pBlurPS, nullptr, 0);
+        context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+
+        //Blurred silhouette to Texture2
+        context->PSSetShader(m_pFXAAPS, nullptr, 0);
+        context->CopyResource(m_pPostpoTexture2, OMTGame::m_pGameInstance->m_pBackBuffer);    
+        context->PSSetShaderResources(1, 1, &m_pPostpoTexture1Resource);
+        context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+        ////////////////////
+    }
     
     if(OMTGame::m_pGameInstance->m_isDebugEnabled)
     {

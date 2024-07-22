@@ -92,8 +92,10 @@ vsoutput vsmain(vsinput input)
     float noise = gnoise(bladePos + elapsedTime);
     float swing = sin(elapsedTime + noise * 4);
     swing += sin(elapsedTime * 3.7 + randomVal);
-    output.position.x += (swing * 0.3 + 0.5) * input.uv.y * lerp(.3, .45, randomVal) * height;
 
+    float swingAmount = (swing * 0.3 + 0.5) * input.uv.y * lerp(.3, .45, randomVal) * height;
+    output.position.x += swingAmount;
+    output.color.g = swingAmount;
 
     input.normal = normalize(input.normal);
     output.normal = input.normal;

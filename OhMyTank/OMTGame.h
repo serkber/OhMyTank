@@ -71,4 +71,5 @@ private:
     float m_camOffsetZ = -10.5;
 
     bool m_isDebugEnabled = false;
+    int m_isFXAAEnabled = true;
 };

@@ -16,7 +16,7 @@ cbuffer data : register(b3)
     float grassFieldSize;
     float grassPos;
     float grassAspect;
-    float camPos;
+    float tankPos;
     float mouseY;
 };
 
@@ -102,7 +102,7 @@ vsoutput vsmain(vsinput input)
     output.normal = normalize(output.normal);
 
 // Curve
-    float val = (output.position.z - camPos);
+    float val = (output.position.z - tankPos);
     val = inverseLerp(5, 300, val);
     val *= val;
     output.position.y += val * 60;

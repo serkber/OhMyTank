@@ -6,7 +6,7 @@ cbuffer data : register(b0)
     float grassfieldSize;
     float grassPos;
     float grassAspect;
-    float camPos;
+    float tankPos;
     float mouseY;
 };
 
@@ -23,21 +23,30 @@ struct vsoutput {
 
 float4 psmain(vsoutput input) : SV_TARGET
 {
-    float2 offsetV = float2(0, 0.002);
-    float2 offsetH = float2(0.002, 0);
-    float4 up = Frame.Sample(TextureSampler, input.uv + offsetV);
-    float4 down = Frame.Sample(TextureSampler, input.uv - offsetV);
-    float4 left = Frame.Sample(TextureSampler, input.uv - offsetH);
-    float4 right = Frame.Sample(TextureSampler, input.uv + offsetH);
-    float4 up2 = Frame.Sample(TextureSampler, input.uv + offsetV * 2);
-    float4 down2 = Frame.Sample(TextureSampler, input.uv - offsetV * 2);
-    float4 left2 = Frame.Sample(TextureSampler, input.uv - offsetH * 2);
-    float4 right2 = Frame.Sample(TextureSampler, input.uv + offsetH * 2);
+    int iterations = 8;
+    float offset = 0.0032 / (float)iterations;
+    float2 offsetV = float2(0, offset);
+    float2 offsetH = float2(offset, 0);
 
-    float4 frame = Frame.Sample(TextureSampler, input.uv);
-    float4 blurred = (up + down + left + right + up2 + down2 + left2 + right2) / 8;
+    float4 blurred = Frame.Sample(TextureSampler, input.uv);
+    float4 frame = blurred;
+    for(int i = 1; i < iterations + 1; i++)
+    {
+        float4 up = Frame.Sample(TextureSampler, input.uv + offsetV * i);
+        float4 down = Frame.Sample(TextureSampler, input.uv - offsetV * i);
+        float4 left = Frame.Sample(TextureSampler, input.uv - offsetH * i);
+        float4 right = Frame.Sample(TextureSampler, input.uv + offsetH * i);
+
+        float4 upRight = Frame.Sample(TextureSampler, input.uv + offsetV + offsetH * i * 0.75);
+        float4 upLeft = Frame.Sample(TextureSampler, input.uv - offsetV - offsetH * i * 0.75);
+        float4 downLeft = Frame.Sample(TextureSampler, input.uv - offsetH - offsetV * i * 0.75);
+        float4 downRight = Frame.Sample(TextureSampler, input.uv + offsetH - offsetV * i * 0.75);
+
+        blurred += (up + down + left + right + upRight + upLeft + downLeft + downRight);
+    }
+
+    blurred /= iterations * 8;
 
     float mask = Mask.Sample(TextureSampler, input.uv).r;
-
     return lerp(frame, blurred, mask);
 }

@@ -1,17 +1,31 @@
 #include "OMTInput.h"
-
-#include <bitset>
-
 #include "OMTGame.h"
 #include "Utils.h"
 
 OMTInput::OMTInput()
 {
-    m_mousePosNorm = float2(0.0f, 0.0f);
+    for (auto &key : keys)
+    {
+        key.second = new Key;
+    }
+    for (auto &key : mouseButtons)
+    {
+        key.second = new Key;
+    }
 }
 
 OMTInput::~OMTInput()
 {
+    for (auto &key : keys)
+    {
+        delete key.second;
+        key.second = nullptr;
+    }
+    for (auto &key : mouseButtons)
+    {
+        delete key.second;
+        key.second = nullptr;
+    }
 }
 
 bool OMTInput::InitializeInput()
@@ -86,20 +100,17 @@ bool OMTInput::InitializeInput()
 void OMTInput::HandleMouse()
 {
     // Absolute mouse handling
-    if(!m_isControllingCamera)
-    {
-        GetCursorPos(&m_mousePos);
-        
-        m_mousePosRelative = m_mousePos;
-        ScreenToClient(OMTGame::m_pGameInstance->m_hWnd, &m_mousePosRelative);
-        
-        m_mousePosNorm.x = (float)m_mousePosRelative.x / OMTGame::m_pGameInstance->m_windSize.x;
-        m_mousePosNorm.y = (1.0f - (float)m_mousePosRelative.y / OMTGame::m_pGameInstance->m_windSize.y);
-        m_mousePosNorm.x -= 0.5f;
-        m_mousePosNorm.x *= 2.0f;
-        m_mousePosNorm.y -= 0.5f;
-        m_mousePosNorm.y *= 2.0f;
-    }
+    GetCursorPos(&m_mousePos);
+    
+    m_mousePosRelative = m_mousePos;
+    ScreenToClient(OMTGame::m_pGameInstance->m_hWnd, &m_mousePosRelative);
+    
+    m_mousePosNorm.x = (float)m_mousePosRelative.x / OMTGame::m_pGameInstance->m_windSize.x;
+    m_mousePosNorm.y = (1.0f - (float)m_mousePosRelative.y / OMTGame::m_pGameInstance->m_windSize.y);
+    m_mousePosNorm.x -= 0.5f;
+    m_mousePosNorm.x *= 2.0f;
+    m_mousePosNorm.y -= 0.5f;
+    m_mousePosNorm.y *= 2.0f;
 
     if (m_mousePosNorm.x > -1.0f && m_mousePosNorm.x < 1.0f &&
         m_mousePosNorm.y > -1.0f && m_mousePosNorm.y < 1.0f)
@@ -115,85 +126,40 @@ void OMTInput::HandleMouse()
     // Get mouse state data
     DIMOUSESTATE mouseData;
     m_pMouseDevice->GetDeviceState(sizeof(mouseData), &mouseData);
-    
-    // Button: Left mouse button
-    m_isLeftButtonDown = false;
-    if (mouseData.rgbButtons[0] & 0x80) {
-        m_isLeftButtonDown = true;
-    }
-    
-    // Button: Right mouse button
-    m_isRightButtonDown = false;
-    if (mouseData.rgbButtons[1] & 0x80) {
-        m_isRightButtonDown = true;
-    }
-    
-    // Button: Middle mouse button
-    m_isMiddleButtonDown = false;
-    if (mouseData.rgbButtons[2] & 0x80) {
-        m_isMiddleButtonDown = true;
+
+    for (auto &key : mouseButtons)
+    {
+        key.second->down = false;
+        key.second->up = false;
     }
 
-#ifdef _DEBUG
-    OMTGame::m_pGameInstance->m_isPainting = false;
-    if(m_isLeftButtonDown && m_isMouseOverWindow)
+    for(auto &key : mouseButtons)
     {
-        OMTGame::m_pGameInstance->m_isPainting = true;
+        EvaluateKey(mouseData.rgbButtons[key.first] & 0x80, key);
     }
-    
-    if((m_isRightButtonDown || m_isMiddleButtonDown) && m_isMouseOverWindow)
-    {
-        if(m_isCursorShown)
-        {
-            m_isCursorShown = false;
-            ShowCursor(false);
-        }
-        
-        m_isControllingCamera = true;
-        SetCursorPos(m_mousePos.x, m_mousePos.y);
-        
-        if(m_isRightButtonDown)
-        {
-            OMTGame::m_pGameInstance->RotateCamera(mouseData.lX / (float)OMTGame::m_pGameInstance->m_windSize.x,
-                mouseData.lY / (float)OMTGame::m_pGameInstance->m_windSize.y);
-        }
-        if(m_isMiddleButtonDown)
-        {
-            OMTGame::m_pGameInstance->PanCamera(mouseData.lX / (float)OMTGame::m_pGameInstance->m_windSize.x,
-                mouseData.lY / (float)OMTGame::m_pGameInstance->m_windSize.y);
-        }
-        
-        float forwardCam = 0;
-        float rightCam = 0;
-        if(m_isWPressed)
-        {
-            forwardCam += m_camSpeed;
-        }
-        if(m_isSPressed)
-        {
-            forwardCam -= m_camSpeed;
-        }
-        if(m_isDPressed)
-        {
-            rightCam += m_camSpeed;
-        }
-        if(m_isAPressed)
-        {
-            rightCam -= m_camSpeed;
-        }
 
-        OMTGame::m_pGameInstance->MoveCamera(forwardCam, rightCam);
+    m_mouseDelta.x = mouseData.lX;
+    m_mouseDelta.y = mouseData.lY;
+}
+
+void OMTInput::EvaluateKey(bool currentState, std::map<int, Key*>::value_type& key)
+{
+    if(currentState)
+    {
+        if(!key.second->pressed)
+        {
+            key.second->down = true;
+        }
+        key.second->pressed = true;
     }
     else
-    {
-        if(!m_isCursorShown)
+    {            
+        if(key.second->pressed)
         {
-            m_isCursorShown = true;
-            ShowCursor(true);
+            key.second->up = true;
         }
-        m_isControllingCamera = false;
+        key.second->pressed = false;
     }
-#endif
 }
 
 void OMTInput::HandleKeyboard()
@@ -202,36 +168,14 @@ void OMTInput::HandleKeyboard()
     char keyboardData[256];
     m_pKeyboardDevice->GetDeviceState(sizeof(keyboardData), (void*)&keyboardData);
 
-    m_isWPressed = false;
-    // Key: W
-    if (keyboardData[DIK_W] & 0x80) {
-        m_isWPressed = true;
-    }
-
-    m_isAPressed = false;
-    // Key: A
-    if (keyboardData[DIK_A] & 0x80) { 
-        m_isAPressed = true;
-    }
-
-    m_isSPressed = false;
-    // Key: S
-    if (keyboardData[DIK_S] & 0x80) { 
-        m_isSPressed = true;
-    }
-
-    m_isDPressed = false;
-    // Key: D
-    if (keyboardData[DIK_D] & 0x80) { 
-        m_isDPressed = true;
-    }
-
-    if(keyboardData[DIK_R] & 0x80)
+    for (auto &key : keys)
     {
-        OMTGame::m_pGameInstance->m_isDebugEnabled = !OMTGame::m_pGameInstance->m_isDebugEnabled;
+        key.second->down = false;
+        key.second->up = false;
     }
-    if(keyboardData[DIK_T] & 0x80)
+
+    for (auto &key : keys)
     {
-        OMTGame::m_pGameInstance->m_isFXAAEnabled = !OMTGame::m_pGameInstance->m_isFXAAEnabled;
+        EvaluateKey(keyboardData[key.first] & 0x80, key);
     }
 }

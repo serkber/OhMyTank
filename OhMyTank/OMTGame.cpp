@@ -69,6 +69,69 @@ void OMTGame::UnloadContent()
     m_waveBank.release();
 }
 
+void OMTGame::ControlCamera()
+{
+    if(m_input.mouseButtons[1]->down || m_input.mouseButtons[2]->down)
+    {
+        m_isControllingCamera = true;
+        ShowCursor(false);
+        m_savedMousePos = m_input.m_mousePos;
+    }
+    if(m_input.mouseButtons[1]->up || m_input.mouseButtons[2]->up)
+    {
+        m_isControllingCamera = false;
+        ShowCursor(true);
+        ::SetCursorPos(m_savedMousePos.x, m_savedMousePos.y);
+    }
+    if(m_input.mouseButtons[1]->pressed)
+    {
+        RotateCamera(m_input.m_mouseDelta.x * m_rotSensitivity, m_input.m_mouseDelta.y * m_rotSensitivity);
+        float forwardCam = 0;
+        float rightCam = 0;
+        if(m_input.keys[DIK_W]->pressed)
+        {
+            forwardCam += 1;
+        }
+        if(m_input.keys[DIK_S]->pressed)
+        {
+            forwardCam -= 1;
+        }
+        if(m_input.keys[DIK_A]->pressed)
+        {
+            rightCam -= 1;
+        }
+        if(m_input.keys[DIK_D]->pressed)
+        {
+            rightCam += 1;
+        }
+        MoveCamera(forwardCam, rightCam);
+    }
+    else if(m_input.mouseButtons[2]->pressed)
+    {
+        PanCamera(m_input.m_mouseDelta.x * m_panSensitivity, m_input.m_mouseDelta.y * m_panSensitivity);
+    }
+    
+    m_camPos = DirectX::XMVectorAdd(m_tankPos, DirectX::XMVectorSet(m_camOffsetX, m_camOffsetY, m_camOffsetZ, 0));
+}
+
+void OMTGame::ControlTank()
+{
+    float speed = 0;
+    if(!m_isControllingCamera)
+    {
+        m_tankRot = m_input.keys[DIK_A]->pressed ? m_tankRot -= m_deltaTime * m_tankRotationSpeed : m_tankRot;
+        m_tankRot = m_input.keys[DIK_D]->pressed ? m_tankRot += m_deltaTime * m_tankRotationSpeed : m_tankRot;
+
+        speed = m_input.keys[DIK_W]->pressed ? speed += m_deltaTime * m_tankSpeed : speed;
+        speed = m_input.keys[DIK_S]->pressed ? speed -= m_deltaTime * m_tankSpeed : speed;
+    }
+    
+    auto tankDelta = DirectX::XMVectorSet(sin(m_tankRot), 0, cos(m_tankRot), 0);
+    tankDelta = DirectX::XMVectorScale(tankDelta, m_deltaTime * speed);
+    
+    m_tankPos = DirectX::XMVectorAdd(m_tankPos ,tankDelta);
+}
+
 void OMTGame::Update()
 {
     if (m_retryAudio)
@@ -96,31 +159,17 @@ void OMTGame::Update()
         m_input.HandleKeyboard();
     }
 
-    if(!m_input.m_isControllingCamera)
+    if(m_input.keys[DIK_T]->down)
     {
-        m_tankRot = m_input.m_isAPressed ? m_tankRot -= m_deltaTime * 3 : m_tankRot;
-        m_tankRot = m_input.m_isDPressed ? m_tankRot += m_deltaTime * 3 : m_tankRot;
+        m_isFXAAEnabled = !m_isFXAAEnabled;
     }
-    
-    //m_tankRot = sin(m_elapsedTime) * 0.2;
-    float speed = 0;
-    if(m_input.m_isWPressed && !m_input.m_isControllingCamera)
+    if(m_input.keys[DIK_R]->down)
     {
-        speed += 30;
+        m_isDebugEnabled = !m_isDebugEnabled;
     }
-    if(m_input.m_isSPressed && !m_input.m_isControllingCamera)
-    {
-        speed -= 30;
-    }
-    
-    auto tankDelta = DirectX::XMVectorSet(sin(m_tankRot), 0, cos(m_tankRot), 0);
-    tankDelta = DirectX::XMVectorScale(tankDelta, m_deltaTime * speed);
-    
-    m_tankPos = DirectX::XMVectorAdd(m_tankPos ,tankDelta);
-    
-    m_camPos = DirectX::XMVectorAdd(m_tankPos, DirectX::XMVectorSet(m_camOffsetX, m_camOffsetY, m_camOffsetZ, 0));
 
-    // std::cout << m_camPos.m128_f32[1] << " " << m_camPos.m128_f32[2] << " " << m_camRotY << std::endl;
+    ControlTank();
+    ControlCamera();
 
     CreateTankMatrix();
     CreateGrassMatrices();
@@ -162,25 +211,28 @@ void OMTGame::RotateCamera(float horizontal, float vertical)
 
 void OMTGame::PanCamera(float horizontal, float vertical)
 {
-    // Free cam
-    // auto up = DirectX::XMVectorScale(m_cameraMatrix.r[1], vertical * 10);
-    // auto right = DirectX::XMVectorScale(m_cameraMatrix.r[0], -horizontal * 10);
-    // auto delta = DirectX::XMVectorAdd(up, right);
-    // m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
-    m_camOffsetX -= horizontal * 10;
-    m_camOffsetY += vertical * 10;
+    auto up = DirectX::XMVectorScale(m_cameraMatrix.r[1], vertical * m_camSpeed);
+    auto right = DirectX::XMVectorScale(m_cameraMatrix.r[0], -horizontal * m_camSpeed);
+    auto delta = DirectX::XMVectorAdd(up, right);
+    
+    //m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
+
+    m_camOffsetX += DirectX::XMVectorGetX(delta);
+    m_camOffsetY += DirectX::XMVectorGetY(delta);
+    m_camOffsetZ += DirectX::XMVectorGetZ(delta);
 }
 
 void OMTGame::MoveCamera(float forward, float right)
 {
-    // Free cam
-    // auto forwardVec = DirectX::XMVectorScale(m_cameraMatrix.r[2], forward * m_deltaTime * 10);
-    // auto rightVec = DirectX::XMVectorScale(m_cameraMatrix.r[0], right * m_deltaTime * 10);
-    // auto delta = DirectX::XMVectorAdd(forwardVec, rightVec);
-    //
-    // m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
+    auto forwardVec = DirectX::XMVectorScale(m_cameraMatrix.r[2], forward * m_deltaTime * m_camSpeed);
+    auto rightVec = DirectX::XMVectorScale(m_cameraMatrix.r[0], right * m_deltaTime * m_camSpeed);
+    auto delta = DirectX::XMVectorAdd(forwardVec, rightVec);
+    
+    //m_camPos = DirectX::XMVectorAdd(m_camPos, delta);
 
-    m_camOffsetZ += forward * 10 * m_deltaTime;
+    m_camOffsetX += DirectX::XMVectorGetX(delta);
+    m_camOffsetY += DirectX::XMVectorGetY(delta);
+    m_camOffsetZ += DirectX::XMVectorGetZ(delta);
 }
 
 void OMTGame::SetFocusState(bool state)

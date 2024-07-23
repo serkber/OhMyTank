@@ -1,8 +1,17 @@
 #pragma once
 
+#include <array>
 #include <dinput.h>
+#include <map>
 
 #include "Typedefs.h"
+
+struct Key
+{
+    bool down = false;
+    bool up = false;
+    bool pressed = false;
+};
 
 class OMTInput
 {
@@ -11,26 +20,29 @@ public:
     ~OMTInput();
     bool InitializeInput();
     void HandleMouse();
+    void EvaluateKey(bool currentState, std::map<int, Key*>::value_type& key);
     void HandleKeyboard();
 
     POINT m_mousePos;
     POINT m_mousePosRelative;
-    float2 m_mousePosNorm;
-    
+    POINT m_mousePosNorm;
+    POINT m_mouseDelta;
     bool m_isMouseOverWindow = false;
-    bool m_isRightButtonDown = false;
-    bool m_isMiddleButtonDown = false;
-    bool m_isLeftButtonDown = false;
 
-    bool m_isWPressed = false;
-    bool m_isAPressed = false;
-    bool m_isSPressed = false;
-    bool m_isDPressed = false;
-    
-    bool m_isControllingCamera = false;
-    bool m_isCursorShown = true;
+    std::map<int, Key*> mouseButtons{
+        {0, nullptr},
+        {1, nullptr},
+        {2, nullptr},
+    };
 
-    float m_camSpeed = 4;
+    std::map<int, Key*> keys {
+        {DIK_W, nullptr},
+        {DIK_S, nullptr},
+        {DIK_A, nullptr},
+        {DIK_D, nullptr},
+        {DIK_R, nullptr},
+        {DIK_T, nullptr}
+    };
 
 private:    
     LPDIRECTINPUT8 m_pDirectInput;

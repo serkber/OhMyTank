@@ -467,16 +467,9 @@ bool OMTRender::CreateGrassInstancesBuffer()
 void OMTRender::RenderGrass(float grassPos, ID3D11ShaderResourceView** grassTexture)
 {
     auto context = OMTGame::m_pGameInstance->m_pD3DContext;
-    context->VSSetShader(m_pGrassFieldVS, nullptr, 0);
-    context->PSSetShader(m_pGrassFieldPS, nullptr, 0);
-    UINT strides[2] = { sizeof(BasicVertex), sizeof(RenderingData::InstanceData) };
-    UINT offsets[2] = { 0, 0 };
-    context->IASetVertexBuffers(0, 2, m_pGrassBuffers, strides, offsets);
-    context->IASetIndexBuffer(m_pIndexBufferGrassField, DXGI_FORMAT_R16_UINT, 0);
     context->VSSetShaderResources(0, 1, grassTexture);
 
     m_data.grassPos = grassPos;
-    m_data.grassAspect = GRASS_FIELD_ASPECT;
     context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
 
     const UINT instancesCount = GRASS_FIELD_SIZE * GRASS_FIELD_SIZE;
@@ -507,19 +500,8 @@ void OMTRender::RenderGrass(float grassPos, ID3D11ShaderResourceView** grassText
 
 void OMTRender::RenderGrassTexture(ID3D11RenderTargetView** renderTarget, matrix grassMatrix, bool isCurrentGrass)
 {
-    auto context = OMTGame::m_pGameInstance->m_pD3DContext;
-    
-    UINT stride = sizeof(BasicVertex);
-    UINT offset = 0;
-    context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
-    SetRenderViewport(RENDER_TEXTURE_SIZE, RENDER_TEXTURE_SIZE * floor(GRASS_FIELD_ASPECT));
-    context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
-    context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
-    float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    context->OMSetBlendState(m_pMultiplyBlendState, blendFactor, 0xFFFFFFFF);
+    auto context = OMTGame::m_pGameInstance->m_pD3DContext;    
     context->OMSetRenderTargets(1, renderTarget, nullptr);
-    context->VSSetShader(m_pRenderTextureVS, nullptr, 0);
-    context->PSSetShader(m_pRenderTexturePS, nullptr, 0);
     
     auto inverseGrassMatrix = DirectX::XMMatrixInverse(nullptr, grassMatrix);
     auto matrixScalingFactor = 1.0f / GRASS_FIELD_SIZE * 2.0f;
@@ -542,6 +524,8 @@ void OMTRender::RenderGrassTexture(ID3D11RenderTargetView** renderTarget, matrix
         m_data.square = 0;
         context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
         context->DrawIndexed(m_quadModel.indexCount, 0, 0);
+        m_data.square = 1;
+        context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
     }
         
     // tankPainting
@@ -569,9 +553,6 @@ void OMTRender::RenderGrassTexture(ID3D11RenderTargetView** renderTarget, matrix
     brushMatrix *= DirectX::XMMatrixTranslation(brushPos.m128_f32[0], -brushPos.m128_f32[2], 0);        
     brushMatrix = XMMatrixTranspose(brushMatrix);
     context->UpdateSubresource(m_pModelCB, 0, nullptr, &brushMatrix, 0, 0);
-        
-    m_data.square = 1;
-    context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);
     
     context->DrawIndexed(m_quadModel.indexCount, 0, 0);
 }
@@ -586,15 +567,18 @@ void OMTRender::UpdateCameraBuffers(ID3D11DeviceContext* context)
 
 void OMTRender::Render()
 {
-    UINT stride = sizeof(BasicVertex);
-    UINT offset = 0;
-    
-    CreateDebugTextureMatrix();
-    
     auto context = OMTGame::m_pGameInstance->m_pD3DContext;
     // Check if D3D is ready
     if (context == nullptr)
+    {
         return;
+    }
+    
+    UINT stride = sizeof(BasicVertex);
+    UINT offset = 0;
+    float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    
+    CreateDebugTextureMatrix();    
     
     //Update camera buffers
     UpdateCameraBuffers(context);
@@ -606,16 +590,18 @@ void OMTRender::Render()
     m_data.mouseX = OMTGame::m_pGameInstance->m_input.m_mousePosNorm.x;
     m_data.mouseY = OMTGame::m_pGameInstance->m_input.m_mousePosNorm.y;
     m_data.grassfieldSize = GRASS_FIELD_SIZE;
-    m_data.camPos = DirectX::XMVectorGetZ(OMTGame::m_pGameInstance->m_camPos);
+    m_data.tankPos = DirectX::XMVectorGetZ(OMTGame::m_pGameInstance->m_tankPos);
+    m_data.square = 1;
+    m_data.grassAspect = GRASS_FIELD_ASPECT;
     context->UpdateSubresource(m_pDataCB, 0, nullptr, &m_data, 0, 0);    
-    std::cout << m_data.mouseX << ' ' << m_data.mouseY << std::endl;
+    // std::cout << m_data.mouseX << ' ' << m_data.mouseY << std::endl;
     
     // Set stuff
     context->PSSetSamplers(0, 1, &m_pTextureSampler);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetInputLayout(m_pBasicInputLayout);
     
     //Render Texture drawcall
-    context->IASetInputLayout(m_pBasicInputLayout);
     //////////////////////////////////
     if(renderTextureTimer < 0.01666)
     {
@@ -623,7 +609,15 @@ void OMTRender::Render()
     }
     else
     {
-        renderTextureTimer = 0;
+        renderTextureTimer = 0;        
+    
+        context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilStateDisabled, 0);
+        SetRenderViewport(RENDER_TEXTURE_SIZE, RENDER_TEXTURE_SIZE * floor(GRASS_FIELD_ASPECT));
+        context->IASetVertexBuffers(0, 1, &m_pVertexBufferQuad, &stride, &offset);
+        context->IASetIndexBuffer(m_pIndexBufferQuad, DXGI_FORMAT_R16_UINT, 0);
+        context->OMSetBlendState(m_pMultiplyBlendState, blendFactor, 0xFFFFFFFF);
+        context->VSSetShader(m_pRenderTextureVS, nullptr, 0);
+        context->PSSetShader(m_pRenderTexturePS, nullptr, 0);
         RenderGrassTexture(&m_pRenderTexture1TargetView, OMTGame::m_pGameInstance->m_grass1Matrix, m_currentGrass == 0);
         RenderGrassTexture(&m_pRenderTexture2TargetView, OMTGame::m_pGameInstance->m_grass2Matrix, m_currentGrass == 1);
     }
@@ -642,13 +636,18 @@ void OMTRender::Render()
     // Render grass
     ////////////////////////
     context->IASetInputLayout(m_pInstantiableInputLayout);
+    context->VSSetShader(m_pGrassFieldVS, nullptr, 0);
+    context->PSSetShader(m_pGrassFieldPS, nullptr, 0);
+    UINT strides[2] = { sizeof(BasicVertex), sizeof(RenderingData::InstanceData) };
+    UINT offsets[2] = { 0, 0 };
+    context->IASetVertexBuffers(0, 2, m_pGrassBuffers, strides, offsets);
+    context->IASetIndexBuffer(m_pIndexBufferGrassField, DXGI_FORMAT_R16_UINT, 0);
     RenderGrass(OMTGame::m_pGameInstance->m_grass1Pos, &m_pRenderTexture1Resource);
     RenderGrass(OMTGame::m_pGameInstance->m_grass2Pos, &m_pRenderTexture2Resource);
     ////////////////////
     
     // Render tank
     ///////////////////////////   
-    context->OMSetDepthStencilState(OMTGame::m_pGameInstance->m_pDepthStencilState, 0);
     context->IASetInputLayout(m_pBasicInputLayout);     
     context->VSSetShader(m_pTankVS, nullptr, 0);
     context->PSSetShader(m_pTankPS, nullptr, 0);

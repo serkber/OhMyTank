@@ -22,6 +22,8 @@ public:
     void ReInitializeGraphics(HWND hWnd, HINSTANCE hInst) override;
     virtual bool LoadContent();
     virtual void UnloadContent();
+    void ControlCamera();
+    void ControlTank();
     virtual void Update();
     virtual void Render();
     void CreateTankMatrix();
@@ -37,7 +39,8 @@ private:
     OMTRender m_render;
     OMTInput m_input;
     bool m_isWindowFocused = true;
-    bool m_isPainting;
+    bool m_isPainting = false;
+    bool m_isControllingCamera = false;
 
     bool CreateConstantBuffers();
     
@@ -59,10 +62,17 @@ private:
     matrix m_grass2Matrix;
     float m_grass2Pos;
 
+    float m_tankRotationSpeed = 4;
+    float m_tankSpeed = 10000;
     matrix m_tankMatrix;
     DirectX::XMVECTOR m_tankPos;
     float m_tankRot = 0;
+
+    POINT m_savedMousePos;
     
+    float m_rotSensitivity = 0.002;
+    float m_panSensitivity = 0.002;
+    float m_camSpeed = 10;
     matrix m_cameraMatrix;
     float m_camRotX, m_camRotY;
     DirectX::XMVECTOR m_camPos;

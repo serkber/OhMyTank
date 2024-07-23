@@ -14,7 +14,7 @@ class OMTRender
         float grassfieldSize;
         float grassPos;
         float grassAspect;
-        float camPos;
+        float tankPos;
         float mouseY;
     };
     

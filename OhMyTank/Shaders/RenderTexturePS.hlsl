@@ -1,33 +1,10 @@
-cbuffer data : register(b0)
-{
-	float elapsedTime;
-    float mouseX;
-    float square;
-    float grassFieldSize;
-    float grassPos;
-};
-
-struct vsoutput {
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-};
+#include "Shaders/Common/BasicVSOutput.hlsl"
 
 float4 psmain(vsoutput input) : SV_TARGET
 {
-	float val;
-	if(square == 0)
-	{
-    	val = length(input.uv * 2 - 1);
-	}
-	else
-	{
-		float smooth = 0.5;
-		float2 sq = smoothstep(smooth, 0.0, input.uv);
-		sq = max(sq, smoothstep(1 - smooth, 1.0, input.uv));
-		val = max(sq.r, sq.g);
-
-	}
-    return float4(val, 0, 0, 1);
+	float val = max (step(0.85, input.uv.x), (1 - step(0.15, input.uv.x)));
+	return float4(0, 0, 0, val);
+	//float4 dir = float4(0, input.color.gb, 0.1);
+	//float4 tracks = float4(0, 0, 0, 0.1);
+    //return lerp(tracks, dir, val);
 }

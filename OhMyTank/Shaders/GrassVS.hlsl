@@ -1,113 +1,85 @@
-cbuffer view : register(b1)
-{
-    matrix viewMatrix;
-};
-
-cbuffer projection : register(b2)
-{
-    matrix projMatrix;
-};
-
-cbuffer data : register(b3)
-{
-    float elapsedTime;
-    float mouseX;
-    float square;
-    float grassFieldSize;
-    float grassPos;
-    float grassAspect;
-    float tankPos;
-    float mouseY;
-};
+#include "Shaders/Common/CBufferData.hlsl"
+#include "Shaders/Common/CBufferView.hlsl"
+#include "Shaders/Common/CBufferProjection.hlsl"
 
 Texture2D Texture : register(t0);
 sampler TextureSampler : register(s0);
 
-struct vsoutput {
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-};
+#include "Shaders/Common/BasicVSOutput.hlsl"
+#include "Shaders/Common/InstantiableVSInput.hlsl"
+#include "Shaders/Common/Utils.hlsl"
 
-struct vsinput {
-    float4 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-    uint instanceID : SV_InstanceID;
-    matrix iModel : INSTANCE_MODEL;
-};
-
-float random( float2 p )
-{
-    float2 K1 = float2(23.14069263277926, 2.665144142690225);
-    return frac( cos( dot(p,K1) ) * 12345.6789);
-};
-
-float gnoise(float2 n) {
-    const float2 d = float2(0.0, 1.0);
-    float2  b = floor(n), 
-    f = smoothstep(d.xx, d.yy, frac(n));
-
-    float x = lerp(random(b), random(b + d.yx), f.x),
-          y = lerp(random(b + d.xy), random(b + d.yy), f.x);
-
-    return lerp( x, y, f.y );
-};
-
-float inverseLerp(float from, float to, float val){
-    return (val - from) / (to - from);
-}
+#define HALF_PI 1.57079632679
+#define PI 3.14159265359
 
 vsoutput vsmain(vsinput input)
 {
 	vsoutput output = (vsoutput)0;
 	
     output.position = mul(input.position, input.iModel);
-    float2 bladePos = float2( input.iModel._41, input.iModel._43 ) + input.color.rg;
+    float2 bladePos = float2(input.iModel._41, input.iModel._43) + input.color.rg;
 
     float randomVal = random(bladePos);
 
 // Blade offset
-    output.position.x += lerp(-0.5, 0.7, randomVal);
-    output.position.z += lerp(-0.3, 1.1, randomVal);
+    float rotVal = input.uv.x * 2 - 1;
+    output.position.x += lerp(-0.5, 0.5, randomVal); + sin(randomVal * PI) * rotVal * 0.05;
+    output.position.z += lerp(-0.5, 0.5, randomVal) + cos(randomVal * PI) * rotVal * 0.05;
+    float2 topPos = output.position.xz;
 
 // Tip height
     output.color = gnoise(bladePos / 2);
 
-    float2 grassFieldDimensions = float2(grassFieldSize, grassFieldSize * grassAspect);
-    float2 worldUv = output.position.xz + grassFieldDimensions / 2;
-    worldUv /= grassFieldDimensions;
-    worldUv -= float2(0, grassPos / (grassFieldSize * grassAspect));
+    float2 topUvs = output.position.xz - d_grassfieldPos;
+    float2 heightmapUvs = topUvs / d_grassfieldSize;
+    float2 distanceUvs = heightmapUvs * 2;
+    heightmapUvs += 0.5;
 
-    float heightMap = 1 - Texture.SampleLevel(TextureSampler, worldUv, 0).r;
-    float height = lerp(.5, 1.5, randomVal * output.color.r) * input.uv.y;
-    height = lerp(height, 0, heightMap);
+    float4 grassMap = Texture.SampleLevel(TextureSampler, heightmapUvs, 0);
+    float heightMap = grassMap.r;
+    float height = lerp(2, 1, randomVal * output.color.r) * input.uv.y;
+    height = lerp(0, height, heightMap);
+
+    float distanceToTank = length(d_tankPos - topPos) / d_grassfieldSize * 2;
+    float farVal = smoothstep(1, 0.05, distanceToTank);
+
+    height *= farVal;
+
     output.position.y = height;
-
     output.color.a = heightMap;
 
-// Tip swing
-    float noise = gnoise(bladePos + elapsedTime);
-    float swing = sin(elapsedTime + noise * 4);
-    swing += sin(elapsedTime * 3.7 + randomVal);
+    // Fold
+    float2 hMove = grassMap.gb * sin(HALF_PI - 0.15) * height;
+    float vMove = cos(HALF_PI - 0.15);
 
-    float swingAmount = (swing * 0.3 + 0.5) * input.uv.y * lerp(.3, .45, randomVal) * height;
+    // float foldFieldOne = length(d_tankPos - topPos + d_tankDir * 0.75) / d_grassfieldSize * 2;
+    // float foldFieldTwo = length(d_tankPos - topPos - d_tankDir * 0.75) / d_grassfieldSize * 2;
+    // float foldIntensity = smoothstep(0.02, 0.010, foldFieldOne);
+    // foldIntensity = max(foldIntensity, smoothstep(0.02, 0.010, foldFieldTwo)) * input.uv.y;
+    float foldIntensity = grassMap.a;
+
+// Tip swing
+    float noise = gnoise(bladePos + d_elapsedTime);
+    float swing = sin(d_elapsedTime + noise * 4);
+    swing += sin(d_elapsedTime * 3.7 + randomVal);
+
+    float swingAmount = (swing * 0.3 + 0.5) * input.uv.y * lerp(.3, .45, randomVal) * height * (1 - foldIntensity);
     output.position.x += swingAmount;
-    output.color.g = swingAmount;
+    
+    output.position.y = lerp(output.position.y, output.position.y * vMove, foldIntensity);
+    output.position.xz += hMove * foldIntensity;
 
     input.normal = normalize(input.normal);
     output.normal = input.normal;
     output.normal = normalize(output.normal);
 
 // Curve
-    float val = (output.position.z - tankPos);
-    val = inverseLerp(5, 300, val);
-    val *= val;
-    output.position.y += val * 60;
+    //float val = (output.position.z - d_tankPos.y);
+    //val = inverseLerp(5, 300, val);
+    //val *= val;
+    //output.position.y += val * 60;
 
-// View proj transformation
+// View Proj transformation
     output.position = mul(output.position, viewMatrix);
     output.position = mul(output.position, projMatrix);
 

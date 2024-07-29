@@ -5,5 +5,6 @@ sampler TextureSampler : register(s0);
 
 float4 psmain(vsoutput input) : SV_TARGET
 {
-    return Texture.Sample(TextureSampler, input.uv).a;
+    float4 tex = Texture.Sample(TextureSampler, input.uv);
+    return float4(0, 0, 0, 0);
 }

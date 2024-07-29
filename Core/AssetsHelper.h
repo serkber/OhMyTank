@@ -7,7 +7,7 @@
 
 class AssetsHelper
 {
-public:    
+public:
     template <typename T>
     bool LoadShader(const wchar_t* file, ID3DBlob** pVSBuffer, T** pVertexShader);
     

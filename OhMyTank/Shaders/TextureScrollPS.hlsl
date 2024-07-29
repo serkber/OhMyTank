@@ -5,5 +5,6 @@ sampler TextureSampler : register(s0);
 
 float4 psmain(vsoutput input) : SV_TARGET
 {
-    return Texture.Sample(TextureSampler, input.uv).a;
+    float2 mask = smoothstep(1, 0.95, input.uv) * smoothstep(0, 0.05, input.uv);
+    return float4(Texture.Sample(TextureSampler, input.uv).rgb, mask.r * mask.g);
 }

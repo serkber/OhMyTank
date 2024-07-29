@@ -25,7 +25,7 @@ public:
 
     POINT m_mousePos;
     POINT m_mousePosRelative;
-    POINT m_mousePosNorm;
+    float2 m_mousePosNorm;
     POINT m_mouseDelta;
     bool m_isMouseOverWindow = false;
 

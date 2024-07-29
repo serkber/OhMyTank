@@ -1,16 +1,5 @@
-struct vsoutput {
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-};
-
-struct vsinput {
-    float4 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-};
+#include "Shaders/Common/BasicVSInput.hlsl"
+#include "Shaders/Common/BasicVSOutput.hlsl"
 
 vsoutput vsmain(vsinput input)
 {

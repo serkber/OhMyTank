@@ -4,9 +4,6 @@
 #include "OMTInput.h"
 #include "OMTRender.h"
 
-#define GRASS_FIELD_ASPECT 6.0f
-#define GRASS_FIELD_SIZE 55
-
 class OMTGame : public Dx11Base
 {
     friend class OMTRender;
@@ -27,7 +24,6 @@ public:
     virtual void Update();
     virtual void Render();
     void CreateTankMatrix();
-    void CreateGrassMatrices();
     void CreateCameraMatrix();
 
     void RotateCamera(float horizontal, float vertical);
@@ -57,16 +53,15 @@ private:
     DirectX::AudioListener m_listener;
     DirectX::AudioEmitter  m_emitter;
 
-    matrix m_grass1Matrix;
-    float m_grass1Pos;
-    matrix m_grass2Matrix;
-    float m_grass2Pos;
+    DirectX::XMVECTOR m_grassPos;
+    DirectX::XMVECTOR m_nextGrassFieldScroll;
 
     float m_tankRotationSpeed = 4;
-    float m_tankSpeed = 10000;
+    float m_tankSpeed = 5000;
     matrix m_tankMatrix;
     DirectX::XMVECTOR m_tankPos;
     float m_tankRot = 0;
+    DirectX::XMVECTOR m_tankDir;
 
     POINT m_savedMousePos;
     
@@ -74,7 +69,7 @@ private:
     float m_panSensitivity = 0.002;
     float m_camSpeed = 10;
     matrix m_cameraMatrix;
-    float m_camRotX, m_camRotY;
+    float m_camRotPitch, m_camRotJaw;
     DirectX::XMVECTOR m_camPos;
     float m_camOffsetX = 0;
     float m_camOffsetY = 10;

@@ -1,24 +1,9 @@
-cbuffer data : register(b0)
-{
-    float elapsedTime;
-    float mouseX;
-    float square;
-    float grassfieldSize;
-    float grassPos;
-    float grassAspect;
-    float tankPos;
-    float mouseY;
-};
+#include "Shaders/Common/CBufferData.hlsl"
 
 Texture2D Texture : register(t0);
 sampler TextureSampler : register(s0);
 
-struct vsoutput {
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-};
+#include "Shaders/Common/BasicVSOutput.hlsl"
 
 float4 psmain(vsoutput input) : SV_TARGET
 {

@@ -65,7 +65,7 @@ bool AssetsHelper::CompileShader(const wchar_t* shaderName, const char* shaderEn
 {
     ID3DBlob* errorBlob = nullptr;
 
-    D3DCompileFromFile(shaderName, nullptr, nullptr, shaderEntryPoint, shaderModel, 0, 0, buffer, &errorBlob);
+    D3DCompileFromFile(shaderName, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, shaderEntryPoint, shaderModel, 0, 0, buffer, &errorBlob);
     if (errorBlob) {
         *errorMessage = Utils::GetMessageFromBlob((char*)errorBlob->GetBufferPointer());
         errorBlob->Release();

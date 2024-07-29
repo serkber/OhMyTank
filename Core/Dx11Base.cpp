@@ -1,6 +1,5 @@
 ﻿#include "Dx11Base.h"
 #include "Utils.h"
-#include <D3Dcompiler.h>
 
 Dx11Base* Dx11Base::m_instance = nullptr;
 
@@ -167,7 +166,7 @@ void Dx11Base::PreUpdate()
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(current - m_time).count() / (double)1000000;
     m_elapsedTime += m_deltaTime;
 
-    // std::cout << 1 / m_deltaTime << '\t' << " FPS" << '\n';
+    //std::cout << 1 / m_deltaTime << '\t' << " FPS" << '\n';
     
     m_time = current;
 }
@@ -184,20 +183,6 @@ void Dx11Base::Terminate()
     
     // Unload content
     UnloadContent();
-}
-
-bool Dx11Base::CompileShader(const wchar_t* shaderName, const char* shaderEntryPoint, LPCSTR shaderModel, ID3DBlob** buffer, LPCWSTR* errorMessage)
-{
-    ID3DBlob* errorBlob = nullptr;
-
-    D3DCompileFromFile(shaderName, nullptr, nullptr, shaderEntryPoint, shaderModel, 0, 0, buffer, &errorBlob);
-    if (errorBlob) {
-        *errorMessage = Utils::GetMessageFromBlob((char*)errorBlob->GetBufferPointer());
-        errorBlob->Release();
-        return false;
-    }
-
-    return true;
 }
 
 bool Dx11Base::CreateDepthStencilResources()

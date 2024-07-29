@@ -5,7 +5,6 @@
 #define _WIN32_WINNT 0x0602
 #define _USE_MATH_DEFINES
 #include <chrono>
-
 #include "Audio.h"
 
 class Dx11Base
@@ -20,7 +19,6 @@ public:
     // Methods
     bool Initialize(HWND hWnd, HINSTANCE hInst);
     void Terminate();
-    bool CompileShader(const wchar_t* shader_name, const char* shader_entry_point_name, LPCSTR shaderModel, ID3DBlob** buffer, LPCWSTR* errorMessage);
     bool CreateDepthStencilResources();
     void OnNewAudioDevice() noexcept;
     void ReleaseGraphicsResources();

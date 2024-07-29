@@ -1,30 +1,10 @@
-cbuffer model : register(b0)
-{
-    matrix modelMatrix;
-};
+#include "Shaders/Common/CBufferData.hlsl"
+#include "Shaders/Common/CBufferModel.hlsl"
+#include "Shaders/Common/CBufferView.hlsl"
+#include "Shaders/Common/CBufferProjection.hlsl"
 
-cbuffer view : register(b1)
-{
-    matrix viewMatrix;
-};
-
-cbuffer projection : register(b2)
-{
-    matrix projMatrix;
-};
-
-struct vsoutput {
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-};
-
-struct vsinput {
-    float4 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-    float4 color : COLOR;
-};
+#include "Shaders/Common/BasicVSOutput.hlsl"
+#include "Shaders/Common/BasicVSInput.hlsl"
 
 vsoutput vsmain(vsinput input)
 {
@@ -39,6 +19,8 @@ vsoutput vsmain(vsinput input)
     output.normal = normalize(output.normal);
 
     output.uv = input.uv;
+
+    output.color = input.color;
 
     return output;
 }

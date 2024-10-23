@@ -843,7 +843,7 @@ void OMTRender::Render()
     context->UpdateSubresource(m_pModelCB, 0, nullptr, &transposedTankMatrix, 0, 0);
     
     context->PSSetShaderResources(0, 1, &m_pTankMapResource);
-    //context->DrawIndexed(m_tankModel.indexCount, 0, 0);
+    context->DrawIndexed(m_tankModel.indexCount, 0, 0);
     //////////////////
 
     // if(OMTGame::m_pGameInstance->m_isFXAAEnabled)
